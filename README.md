@@ -1,3 +1,34 @@
+# Agentic System Course — 中文版 + 在线阅读器
+
+> 📖 **本仓库是 [bryanyzhu/agentic-ai-system-course](https://github.com/bryanyzhu/agentic-ai-system-course) 的中文翻译 + 极简在线阅读器。**
+> 课程原文与设计版权归原作者 **[Yi Zhu (@bryanyzhu)](https://github.com/bryanyzhu)** 所有，本仓库沿用原始 MIT 协议分发。
+>
+> 🌐 **在线阅读**：https://ocxers.github.io/agentic-ai-course-zh/
+>
+> ✨ **相对原仓库的改动**：
+> - 新增 [`course-zh/`](course-zh/) —— 22 章完整中文翻译
+> - 新增 [`index.html`](index.html) —— 极简单页阅读器，支持中英切换、目录分组、搜索、Mermaid 全屏、明暗主题
+> - 其他文件（`course/`、`CLAUDE.md`、`AGENTS.md`、`setup.sh` 等）保持与上游一致
+>
+> 课程内容如有更新，请以 [上游仓库](https://github.com/bryanyzhu/agentic-ai-system-course) 为准。
+
+---
+
+## 关于阅读器
+
+打开 [在线阅读地址](https://ocxers.github.io/agentic-ai-course-zh/) 即可直接读，或本地：
+
+```bash
+git clone https://github.com/ocxers/agentic-ai-course-zh.git
+cd agentic-ai-course-zh
+python3 -m http.server 8765
+# 浏览器打开 http://localhost:8765/
+```
+
+阅读器是一个零依赖单文件（CDN 加载 `marked` + `mermaid`），所有素材都是本地 markdown 文件，便于离线阅读和导出。
+
+---
+
 # Agentic System Course - Use Agent to Learn Agent
 
 **Join the [discord channel](https://discord.gg/dWSnHAFdpb) if you want to learn and build together!**

@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Agentic AI Systems · Course</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+<style>
+  :root, html[data-theme="light"] {
+    --bg: #ffffff;
+    --fg: #1a1a1a;
+    --muted: #6b6b6b;
+    --subtle: #9a9a9a;
+    --border: #e5e5e5;
+    --hover: #f5f5f5;
+    --active-bg: #f0f0f0;
+    --active-fg: #000;
+    --accent: #2563eb;
+    --code-bg: #f6f8fa;
+    --code-fg: #24292f;
+  }
+  html[data-theme="dark"] {
+    --bg: #111213;
+    --fg: #e6e6e6;
+    --muted: #9a9a9a;
+    --subtle: #6b6b6b;
+    --border: #2a2b2d;
+    --hover: #1c1d1f;
+    --active-bg: #232527;
+    --active-fg: #fff;
+    --accent: #7ea6ff;
+    --code-bg: #1a1b1d;
+    --code-fg: #d4d4d4;
+  }
+  @media (prefers-color-scheme: dark) {
+    html:not([data-theme]) {
+      --bg: #111213;
+      --fg: #e6e6e6;
+      --muted: #9a9a9a;
+      --subtle: #6b6b6b;
+      --border: #2a2b2d;
+      --hover: #1c1d1f;
+      --active-bg: #232527;
+      --active-fg: #fff;
+      --accent: #7ea6ff;
+      --code-bg: #1a1b1d;
+      --code-fg: #d4d4d4;
+    }
+  }
+
+  :root {
+    --sidebar-w: 300px;
+    --content-max: 760px;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: var(--font-sans);
+    color: var(--fg);
+    background: var(--bg);
+    font-size: 15px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .app { display: grid; grid-template-columns: var(--sidebar-w) 1fr; min-height: 100vh; }
+
+  /* sidebar */
+  aside {
+    border-right: 1px solid var(--border);
+    background: var(--bg);
+    position: sticky; top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    display: flex; flex-direction: column;
+  }
+  aside header {
+    padding: 18px 22px 14px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0;
+    background: var(--bg);
+    z-index: 1;
+  }
+  .head-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 8px; }
+  aside header h1 {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: 0.01em;
+  }
+  .icon-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0;
+    transition: color 0.12s, border-color 0.12s, background 0.12s;
+  }
+  .icon-btn:hover { color: var(--fg); border-color: var(--muted); background: var(--hover); }
+  .icon-btn svg { width: 14px; height: 14px; display: block; }
+
+  .controls-row { display: flex; gap: 8px; align-items: center; }
+  .lang-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; font-size: 12px; }
+  .lang-toggle button {
+    background: transparent; color: var(--muted);
+    border: none; padding: 5px 12px; cursor: pointer;
+    font: inherit;
+  }
+  .lang-toggle button.active { background: var(--active-bg); color: var(--active-fg); }
+  .lang-toggle button:not(.active):hover { background: var(--hover); color: var(--fg); }
+
+  .search {
+    flex: 1; min-width: 0;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 10px;
+    color: var(--fg);
+    font: inherit;
+    font-size: 12.5px;
+    outline: none;
+    transition: border-color 0.12s;
+  }
+  .search::placeholder { color: var(--subtle); }
+  .search:focus { border-color: var(--accent); }
+
+  nav { padding: 8px 0 40px; }
+  .group { margin: 6px 0; }
+  .group-head {
+    display: flex; align-items: center; justify-content: space-between;
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 8px 22px 6px;
+    color: var(--subtle);
+    cursor: pointer;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: left;
+  }
+  .group-head:hover { color: var(--fg); }
+  .group-head .chev {
+    display: inline-block;
+    transition: transform 0.15s;
+    font-size: 10px;
+    opacity: 0.6;
+  }
+  .group.collapsed .group-head .chev { transform: rotate(-90deg); }
+  .group-items { display: block; }
+  .group.collapsed .group-items { display: none; }
+
+  .toc-link {
+    display: block;
+    padding: 6px 22px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13.5px;
+    border-left: 2px solid transparent;
+    line-height: 1.45;
+  }
+  .toc-link:hover { background: var(--hover); color: var(--fg); }
+  .toc-link.active {
+    color: var(--active-fg);
+    background: var(--active-bg);
+    border-left-color: var(--accent);
+    font-weight: 500;
+  }
+  .toc-link .num { color: var(--subtle); font-variant-numeric: tabular-nums; margin-right: 8px; font-size: 12px; }
+  .toc-link.active .num { color: var(--accent); }
+  .toc-link.hidden { display: none; }
+  .toc-link mark {
+    background: rgba(255, 220, 0, 0.35);
+    color: inherit;
+    padding: 0 1px;
+    border-radius: 2px;
+  }
+  html[data-theme="dark"] .toc-link mark,
+  html:not([data-theme]) .toc-link mark { background: rgba(255, 220, 0, 0.18); }
+  @media (prefers-color-scheme: light) {
+    html:not([data-theme]) .toc-link mark { background: rgba(255, 220, 0, 0.35); }
+  }
+  .empty-hint { padding: 14px 22px; color: var(--subtle); font-size: 12.5px; }
+
+  /* main */
+  main { padding: 56px 48px 96px; min-width: 0; }
+  .content { max-width: var(--content-max); margin: 0 auto; }
+
+  .content h1, .content h2, .content h3, .content h4 { line-height: 1.3; font-weight: 600; margin: 1.8em 0 0.6em; }
+  .content h1 { font-size: 2em; margin-top: 0; letter-spacing: -0.01em; }
+  .content h2 { font-size: 1.4em; padding-top: 0.6em; border-top: 1px solid var(--border); margin-top: 2.4em; }
+  .content h3 { font-size: 1.15em; }
+  .content h4 { font-size: 1em; color: var(--muted); }
+  .content p, .content ul, .content ol { margin: 0.9em 0; }
+  .content a { color: var(--accent); text-decoration: none; }
+  .content a:hover { text-decoration: underline; }
+  .content hr { border: none; border-top: 1px solid var(--border); margin: 2.2em 0; }
+  .content blockquote {
+    border-left: 3px solid var(--border);
+    color: var(--muted);
+    padding: 0.2em 1em;
+    margin: 1em 0;
+  }
+  .content code {
+    font-family: var(--font-mono);
+    font-size: 0.88em;
+    background: var(--code-bg);
+    color: var(--code-fg);
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+  }
+  .content pre {
+    background: var(--code-bg);
+    color: var(--code-fg);
+    padding: 14px 16px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .content pre code { background: transparent; padding: 0; font-size: inherit; }
+  .content table { border-collapse: collapse; margin: 1em 0; font-size: 0.95em; }
+  .content th, .content td { border: 1px solid var(--border); padding: 6px 12px; text-align: left; }
+  .content th { background: var(--code-bg); font-weight: 600; }
+  .content img { max-width: 100%; }
+
+  /* mermaid */
+  .mermaid-wrap {
+    position: relative;
+    margin: 1.2em 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    background: var(--bg);
+    overflow-x: auto;
+    text-align: center;
+  }
+  .mermaid-wrap > svg { max-width: 100%; height: auto; }
+  .mermaid-wrap > pre {
+    text-align: left;
+    margin: 0;
+  }
+  .expand-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    width: 26px; height: 26px;
+    border-radius: 5px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.12s, border-color 0.12s;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+  .mermaid-wrap:hover .expand-btn,
+  .expand-btn:focus { opacity: 1; }
+  .expand-btn:hover { color: var(--fg); border-color: var(--muted); }
+  .expand-btn svg { width: 12px; height: 12px; }
+
+  /* fullscreen modal */
+  .modal {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    align-items: center; justify-content: center;
+    z-index: 100;
+    padding: 24px;
+    cursor: zoom-out;
+  }
+  .modal.open { display: flex; }
+  .modal-inner {
+    background: var(--bg);
+    border-radius: 10px;
+    padding: 32px;
+    width: min(95vw, 1200px);
+    max-height: 95vh;
+    overflow: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    cursor: default;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .modal-inner svg { width: 100%; height: auto; max-width: 90vw; max-height: 85vh; display: block; }
+  .modal-close {
+    position: fixed;
+    top: 16px; right: 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--fg);
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    z-index: 101;
+  }
+  .modal-close:hover { background: var(--hover); }
+
+  /* pager */
+  .pager {
+    display: flex; gap: 12px;
+    margin-top: 64px;
+    padding-top: 28px;
+    border-top: 1px solid var(--border);
+  }
+  .pager a {
+    flex: 1; min-width: 0;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 18px;
+    color: var(--fg);
+    display: flex; flex-direction: column;
+    transition: border-color 0.12s, background 0.12s;
+  }
+  .pager a:hover { border-color: var(--accent); background: var(--hover); }
+  .pager .label { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
+  .pager .title { font-weight: 500; margin-top: 4px; font-size: 14px; line-height: 1.4; }
+  .pager .next { text-align: right; align-items: flex-end; }
+  .pager .placeholder { visibility: hidden; }
+
+  .loading { color: var(--muted); padding: 40px 0; }
+
+  /* mobile */
+  .menu-btn {
+    display: none;
+    position: fixed; top: 14px; left: 14px;
+    z-index: 20;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    width: 36px; height: 36px;
+    cursor: pointer;
+    align-items: center; justify-content: center;
+    color: var(--fg);
+  }
+  .menu-btn svg { width: 18px; height: 18px; }
+  @media (max-width: 860px) {
+    .app { grid-template-columns: 1fr; }
+    aside {
+      position: fixed; top: 0; left: 0;
+      width: min(86vw, 320px);
+      transform: translateX(-100%);
+      transition: transform 0.18s ease;
+      z-index: 10;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    }
+    aside.open { transform: translateX(0); }
+    .menu-btn { display: flex; }
+    main { padding: 64px 22px 80px; }
+    .pager { flex-direction: column; }
+    .pager .next { text-align: left; align-items: flex-start; }
+    .backdrop {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.3);
+      z-index: 9;
+    }
+    .backdrop.show { display: block; }
+  }
+</style>
+</head>
+<body>
+<button class="menu-btn" id="menuBtn" aria-label="menu">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+</button>
+<div class="backdrop" id="backdrop"></div>
+
+<div class="app">
+  <aside id="sidebar">
+    <header>
+      <div class="head-row">
+        <h1>Agentic AI Systems</h1>
+        <button class="icon-btn" id="themeBtn" aria-label="toggle theme" title="theme">
+          <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
+        </button>
+      </div>
+      <div class="controls-row" style="margin-bottom: 10px;">
+        <div class="lang-toggle" role="tablist">
+          <button data-lang="course" class="active">EN</button>
+          <button data-lang="course-zh">中文</button>
+        </div>
+      </div>
+      <input type="search" class="search" id="search" placeholder="Search chapters…" autocomplete="off" />
+    </header>
+    <nav id="toc"></nav>
+  </aside>
+
+  <main>
+    <div class="content" id="content">
+      <div class="loading">Loading…</div>
+    </div>
+  </main>
+</div>
+
+<div class="modal" id="modal" aria-hidden="true">
+  <button class="modal-close" id="modalClose" aria-label="close">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6l-12 12"/></svg>
+  </button>
+  <div class="modal-inner" id="modalInner"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script type="module">
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.esm.min.mjs';
+
+  const CHAPTERS = [
+    '00-how-to-use-this-course',
+    '01-function-calling',
+    '02-the-agent-loop',
+    '03-tools-validation',
+    '04-prompts-context-cache',
+    '05-short-term-memory',
+    '06-long-term-recall',
+    '07-memory-writing',
+    '08-state-and-persistence',
+    '09-planning-patterns',
+    '10-multi-agent-delegation',
+    '11-agent-harness',
+    '12-human-in-the-loop',
+    '13-connectors-mcp-ipc',
+    '14-skills-mcp-subagents',
+    '15-backend-infrastructure',
+    '16-observability',
+    '17-cost-latency-model-strategy',
+    '18-safety-adversarial-inputs',
+    '19-ops-and-forward-deployed',
+    '20-proactive-agents',
+    '21-self-evolving-agents',
+    '22-designing-your-own-agent',
+  ];
+
+  const GROUPS = [
+    { en: 'Meta',              zh: '导论',       items: [0] },
+    { en: 'Foundations',       zh: '基础',       items: [1, 2, 3, 4] },
+    { en: 'Memory & State',    zh: '记忆与状态',  items: [5, 6, 7, 8] },
+    { en: 'Coordination',      zh: '协同',       items: [9, 10, 11] },
+    { en: 'External Surface',  zh: '外部接口',    items: [12, 13, 14] },
+    { en: 'Production Scale',  zh: '生产规模',    items: [15, 16, 17] },
+    { en: 'Quality & Ops',     zh: '质量与运维',  items: [18, 19] },
+    { en: 'Agency',            zh: '能动性',      items: [20, 21] },
+    { en: 'Design Canvas',     zh: '设计画布',    items: [22] },
+  ];
+
+  const titleCache = { course: {}, 'course-zh': {} };
+  const mdCache = {};
+  const lowerCache = {};
+
+  const STORAGE_THEME = 'course-theme';
+  const STORAGE_COLLAPSED = 'course-collapsed-groups';
+
+  const state = {
+    lang: 'course',
+    idx: 0,
+    theme: localStorage.getItem(STORAGE_THEME) || null, // null = follow system
+    collapsed: new Set(JSON.parse(localStorage.getItem(STORAGE_COLLAPSED) || '[]')),
+    query: '',
+  };
+
+  // ---------- theme ----------
+  function effectiveTheme() {
+    if (state.theme) return state.theme;
+    return matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  function applyTheme() {
+    if (state.theme) document.documentElement.setAttribute('data-theme', state.theme);
+    else document.documentElement.removeAttribute('data-theme');
+    updateThemeIcon();
+  }
+  // sun / moon / auto icons
+  const ICONS = {
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>',
+    moon: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
+    auto: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/>',
+  };
+  function updateThemeIcon() {
+    const icon = document.getElementById('themeIcon');
+    const mode = state.theme || 'auto';
+    icon.innerHTML = ICONS[mode === 'auto' ? 'auto' : (mode === 'dark' ? 'moon' : 'sun')];
+    document.getElementById('themeBtn').title = `theme: ${mode}`;
+  }
+  function cycleTheme() {
+    // light → dark → auto → light …
+    const order = ['light', 'dark', null];
+    const cur = state.theme === null ? null : state.theme;
+    const i = order.indexOf(cur);
+    const next = order[(i + 1) % order.length];
+    state.theme = next;
+    if (next === null) localStorage.removeItem(STORAGE_THEME);
+    else localStorage.setItem(STORAGE_THEME, next);
+    applyTheme();
+    initMermaid();
+    // re-render the current chapter's diagrams with new theme
+    rerenderMermaid();
+  }
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (!state.theme) { initMermaid(); rerenderMermaid(); }
+  });
+
+  // ---------- mermaid setup (minimal theme aligned with page) ----------
+  function mermaidThemeVars() {
+    const dark = effectiveTheme() === 'dark';
+    if (dark) {
+      return {
+        background: '#111213',
+        primaryColor: '#1a1b1d',
+        primaryTextColor: '#e6e6e6',
+        primaryBorderColor: '#3a3b3d',
+        secondaryColor: '#1f2022',
+        tertiaryColor: '#16171a',
+        lineColor: '#9a9a9a',
+        textColor: '#e6e6e6',
+        mainBkg: '#1a1b1d',
+        secondBkg: '#1f2022',
+        nodeBorder: '#3a3b3d',
+        clusterBkg: '#16171a',
+        clusterBorder: '#2a2b2d',
+        edgeLabelBackground: '#111213',
+        actorBkg: '#1a1b1d',
+        actorBorder: '#3a3b3d',
+        actorTextColor: '#e6e6e6',
+        actorLineColor: '#9a9a9a',
+        signalColor: '#e6e6e6',
+        signalTextColor: '#e6e6e6',
+        labelBoxBkgColor: '#1f2022',
+        labelBoxBorderColor: '#3a3b3d',
+        labelTextColor: '#e6e6e6',
+        loopTextColor: '#e6e6e6',
+        noteBkgColor: '#232527',
+        noteTextColor: '#e6e6e6',
+        noteBorderColor: '#3a3b3d',
+      };
+    }
+    return {
+      background: '#ffffff',
+      primaryColor: '#fafafa',
+      primaryTextColor: '#1a1a1a',
+      primaryBorderColor: '#d0d7de',
+      secondaryColor: '#f6f8fa',
+      tertiaryColor: '#fafafa',
+      lineColor: '#6b6b6b',
+      textColor: '#1a1a1a',
+      mainBkg: '#fafafa',
+      secondBkg: '#f6f8fa',
+      nodeBorder: '#d0d7de',
+      clusterBkg: '#fafafa',
+      clusterBorder: '#e5e5e5',
+      edgeLabelBackground: '#ffffff',
+      actorBkg: '#fafafa',
+      actorBorder: '#d0d7de',
+      actorTextColor: '#1a1a1a',
+      actorLineColor: '#6b6b6b',
+      signalColor: '#1a1a1a',
+      signalTextColor: '#1a1a1a',
+      labelBoxBkgColor: '#f6f8fa',
+      labelBoxBorderColor: '#d0d7de',
+      labelTextColor: '#1a1a1a',
+      loopTextColor: '#1a1a1a',
+      noteBkgColor: '#fff8d6',
+      noteTextColor: '#1a1a1a',
+      noteBorderColor: '#e5e5e5',
+    };
+  }
+  function initMermaid() {
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'base',
+      themeVariables: {
+        fontFamily: 'var(--font-sans), system-ui, sans-serif',
+        fontSize: '13px',
+        ...mermaidThemeVars(),
+      },
+      flowchart: { curve: 'basis', padding: 12 },
+      sequence: { actorMargin: 50, boxMargin: 8, messageMargin: 30 },
+      securityLevel: 'loose',
+    });
+  }
+  initMermaid();
+  applyTheme();
+
+  // ---------- marked ----------
+  const renderer = new marked.Renderer();
+  const origCode = renderer.code.bind(renderer);
+  renderer.code = (code, lang) => {
+    if (lang === 'mermaid') {
+      const encoded = code.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      return `<div class="mermaid-wrap"><div class="mermaid" data-src="${encodeURIComponent(code)}">${encoded}</div><button class="expand-btn" aria-label="fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/></svg></button></div>`;
+    }
+    return origCode(code, lang);
+  };
+  marked.setOptions({ renderer, breaks: false, gfm: true });
+
+  // ---------- chapter / title helpers ----------
+  function deriveTitle(slug) {
+    const num = slug.slice(0, 2);
+    const rest = slug.slice(3).replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    return { num, rest };
+  }
+  function extractH1(md, fallback) {
+    const m = md.match(/^#\s+(.+?)\s*$/m);
+    return m ? m[1].trim() : fallback;
+  }
+  async function fetchChapter(lang, idx) {
+    const key = `${lang}/${idx}`;
+    if (mdCache[key]) return mdCache[key];
+    const slug = CHAPTERS[idx];
+    const res = await fetch(`${lang}/${slug}.md`);
+    if (!res.ok) throw new Error(`Failed to load ${lang}/${slug}.md`);
+    const text = await res.text();
+    mdCache[key] = text;
+    lowerCache[key] = text.toLowerCase();
+    titleCache[lang][idx] = extractH1(text, deriveTitle(slug).rest);
+    return text;
+  }
+  function tocLabel(lang, idx) {
+    return titleCache[lang][idx] || deriveTitle(CHAPTERS[idx]).rest;
+  }
+
+  // ---------- TOC rendering ----------
+  function highlightMatch(text, query) {
+    if (!query) return escapeHTML(text);
+    const lower = text.toLowerCase();
+    const q = query.toLowerCase();
+    const i = lower.indexOf(q);
+    if (i === -1) return escapeHTML(text);
+    return escapeHTML(text.slice(0, i)) + '<mark>' + escapeHTML(text.slice(i, i + q.length)) + '</mark>' + escapeHTML(text.slice(i + q.length));
+  }
+  function escapeHTML(s) { return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  function matchesQuery(lang, idx, q) {
+    if (!q) return true;
+    const label = tocLabel(lang, idx).toLowerCase();
+    if (label.includes(q)) return true;
+    const body = lowerCache[`${lang}/${idx}`];
+    return body ? body.includes(q) : false;
+  }
+
+  function renderTOC() {
+    const root = document.getElementById('toc');
+    const q = state.query.trim().toLowerCase();
+    const groupTitle = g => state.lang === 'course-zh' ? g.zh : g.en;
+    const html = GROUPS.map((g, gi) => {
+      const visibleItems = g.items.filter(i => matchesQuery(state.lang, i, q));
+      if (q && visibleItems.length === 0) return '';
+      const isCollapsed = !q && state.collapsed.has(gi);
+      const items = g.items.map(i => {
+        const { num } = deriveTitle(CHAPTERS[i]);
+        const label = tocLabel(state.lang, i);
+        const matched = matchesQuery(state.lang, i, q);
+        const hidden = q && !matched ? ' hidden' : '';
+        const active = i === state.idx ? ' active' : '';
+        const display = q ? highlightMatch(label, q) : escapeHTML(label);
+        return `<a class="toc-link${active}${hidden}" href="#${state.lang}/${num}" data-idx="${i}"><span class="num">${num}</span>${display}</a>`;
+      }).join('');
+      return `<div class="group${isCollapsed ? ' collapsed' : ''}" data-group="${gi}">
+        <button class="group-head" data-group-toggle="${gi}">
+          <span>${escapeHTML(groupTitle(g))}</span><span class="chev">▾</span>
+        </button>
+        <div class="group-items">${items}</div>
+      </div>`;
+    }).join('');
+    const empty = q && !GROUPS.some(g => g.items.some(i => matchesQuery(state.lang, i, q)));
+    root.innerHTML = html + (empty ? `<div class="empty-hint">${state.lang === 'course-zh' ? '没有匹配的章节' : 'No matches'}</div>` : '');
+  }
+
+  // ---------- chapter rendering ----------
+  async function renderChapter() {
+    const content = document.getElementById('content');
+    content.innerHTML = '<div class="loading">Loading…</div>';
+    let md;
+    try {
+      md = await fetchChapter(state.lang, state.idx);
+    } catch (e) {
+      content.innerHTML = `<div class="loading">Failed to load chapter. Make sure you are serving this directory over HTTP (e.g. <code>python -m http.server</code>).<br><br><small>${e.message}</small></div>`;
+      return;
+    }
+    content.innerHTML = marked.parse(md) + pagerHTML();
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    await renderMermaidBlocks();
+    renderTOC();
+    // expand the group containing the active chapter
+    const gi = GROUPS.findIndex(g => g.items.includes(state.idx));
+    if (gi >= 0 && state.collapsed.has(gi)) {
+      state.collapsed.delete(gi);
+      persistCollapsed();
+      renderTOC();
+    }
+  }
+  async function renderMermaidBlocks() {
+    const blocks = document.querySelectorAll('#content .mermaid');
+    for (let i = 0; i < blocks.length; i++) {
+      const el = blocks[i];
+      const src = el.dataset.src ? decodeURIComponent(el.dataset.src) : el.textContent;
+      el.dataset.src = encodeURIComponent(src);
+      const id = `mm-${Date.now()}-${i}`;
+      try {
+        const { svg } = await mermaid.render(id, src);
+        el.outerHTML = svg;
+      } catch (err) {
+        el.outerHTML = `<pre><code>${escapeHTML(src)}</code></pre>`;
+      }
+    }
+    // re-bind expand buttons (the mermaid div was replaced by SVG, button still sits in wrapper)
+    document.querySelectorAll('.mermaid-wrap').forEach(wrap => {
+      const btn = wrap.querySelector('.expand-btn');
+      if (!btn || btn.dataset.bound) return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', () => openModal(wrap));
+    });
+  }
+  async function rerenderMermaid() {
+    // walk all wraps, find their SVG or pre, regenerate from data-src on a sibling cache
+    // simpler: just re-render the chapter
+    if (document.querySelector('.mermaid-wrap')) {
+      // we need the source — store on wrap when first rendering
+      await renderChapter();
+    }
+  }
+
+  function pagerHTML() {
+    const prev = state.idx > 0 ? state.idx - 1 : null;
+    const next = state.idx < CHAPTERS.length - 1 ? state.idx + 1 : null;
+    const prevLabel = state.lang === 'course-zh' ? '上一章' : 'Previous';
+    const nextLabel = state.lang === 'course-zh' ? '下一章' : 'Next';
+    const prevBlock = prev !== null
+      ? `<a href="#${state.lang}/${deriveTitle(CHAPTERS[prev]).num}" class="prev">
+           <span class="label">← ${prevLabel}</span>
+           <span class="title">${escapeHTML(tocLabel(state.lang, prev))}</span>
+         </a>`
+      : `<a class="prev placeholder"><span class="label">—</span><span class="title">—</span></a>`;
+    const nextBlock = next !== null
+      ? `<a href="#${state.lang}/${deriveTitle(CHAPTERS[next]).num}" class="next">
+           <span class="label">${nextLabel} →</span>
+           <span class="title">${escapeHTML(tocLabel(state.lang, next))}</span>
+         </a>`
+      : `<a class="next placeholder"><span class="label">—</span><span class="title">—</span></a>`;
+    return `<div class="pager">${prevBlock}${nextBlock}</div>`;
+  }
+
+  async function preloadAll(lang) {
+    await Promise.all(CHAPTERS.map((_, i) => fetchChapter(lang, i).catch(() => null)));
+    renderTOC();
+  }
+
+  // ---------- fullscreen modal ----------
+  const modal = document.getElementById('modal');
+  const modalInner = document.getElementById('modalInner');
+  function openModal(wrap) {
+    const svg = wrap.querySelector(':scope > svg');
+    const pre = wrap.querySelector(':scope > pre');
+    modalInner.innerHTML = '';
+    if (svg) {
+      const clone = svg.cloneNode(true);
+      // strip mermaid's fixed sizing so CSS can scale it to the viewport
+      clone.removeAttribute('width');
+      clone.removeAttribute('height');
+      clone.style.maxWidth = '';
+      clone.style.maxHeight = '';
+      // ensure viewBox is preserved for scaling
+      if (!clone.getAttribute('viewBox') && svg.getBBox) {
+        const bb = svg.getBBox();
+        clone.setAttribute('viewBox', `${bb.x} ${bb.y} ${bb.width} ${bb.height}`);
+      }
+      modalInner.appendChild(clone);
+    } else if (pre) {
+      modalInner.appendChild(pre.cloneNode(true));
+    } else return;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+  function closeModal() {
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    modalInner.innerHTML = '';
+  }
+  modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+
+  // ---------- routing ----------
+  function parseHash() {
+    const h = location.hash.replace(/^#/, '');
+    const m = h.match(/^(course|course-zh)\/(\d{1,2})$/);
+    if (m) {
+      const idx = Math.max(0, Math.min(CHAPTERS.length - 1, parseInt(m[2], 10)));
+      return { lang: m[1], idx };
+    }
+    return null;
+  }
+  function pushHash(lang, idx) {
+    const num = deriveTitle(CHAPTERS[idx]).num;
+    const target = `#${lang}/${num}`;
+    if (location.hash !== target) location.hash = target;
+  }
+
+  async function applyState() {
+    document.documentElement.lang = state.lang === 'course-zh' ? 'zh-CN' : 'en';
+    document.querySelectorAll('.lang-toggle button').forEach(b => {
+      b.classList.toggle('active', b.dataset.lang === state.lang);
+    });
+    document.getElementById('search').placeholder = state.lang === 'course-zh' ? '搜索章节…' : 'Search chapters…';
+    renderTOC();
+    await renderChapter();
+  }
+
+  function persistCollapsed() {
+    localStorage.setItem(STORAGE_COLLAPSED, JSON.stringify([...state.collapsed]));
+  }
+
+  // ---------- events ----------
+  document.querySelectorAll('.lang-toggle button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.lang === state.lang) return;
+      state.lang = btn.dataset.lang;
+      pushHash(state.lang, state.idx);
+      applyState();
+      preloadAll(state.lang);
+    });
+  });
+
+  window.addEventListener('hashchange', () => {
+    const parsed = parseHash();
+    if (!parsed) return;
+    const changed = parsed.lang !== state.lang || parsed.idx !== state.idx;
+    state.lang = parsed.lang;
+    state.idx = parsed.idx;
+    if (changed) applyState();
+  });
+
+  document.addEventListener('click', e => {
+    const link = e.target.closest('.toc-link');
+    if (link) {
+      e.preventDefault();
+      const idx = parseInt(link.dataset.idx, 10);
+      state.idx = idx;
+      pushHash(state.lang, idx);
+      applyState();
+      closeSidebar();
+      return;
+    }
+    const groupToggle = e.target.closest('[data-group-toggle]');
+    if (groupToggle) {
+      if (state.query.trim()) return; // collapse disabled while searching
+      const gi = parseInt(groupToggle.dataset.groupToggle, 10);
+      if (state.collapsed.has(gi)) state.collapsed.delete(gi);
+      else state.collapsed.add(gi);
+      persistCollapsed();
+      renderTOC();
+    }
+  });
+
+  document.getElementById('themeBtn').addEventListener('click', cycleTheme);
+
+  const searchEl = document.getElementById('search');
+  let searchTimer;
+  searchEl.addEventListener('input', e => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      state.query = e.target.value;
+      renderTOC();
+    }, 80);
+  });
+  searchEl.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { searchEl.value = ''; state.query = ''; renderTOC(); }
+  });
+
+  // mobile menu
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('backdrop');
+  const menuBtn = document.getElementById('menuBtn');
+  function openSidebar() { sidebar.classList.add('open'); backdrop.classList.add('show'); }
+  function closeSidebar() { sidebar.classList.remove('open'); backdrop.classList.remove('show'); }
+  menuBtn.addEventListener('click', () => sidebar.classList.contains('open') ? closeSidebar() : openSidebar());
+  backdrop.addEventListener('click', closeSidebar);
+
+  // keyboard nav
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (modal.classList.contains('open')) {
+      if (e.key === 'Escape') closeModal();
+      return;
+    }
+    if (e.key === 'ArrowLeft' && state.idx > 0) {
+      state.idx -= 1; pushHash(state.lang, state.idx); applyState();
+    } else if (e.key === 'ArrowRight' && state.idx < CHAPTERS.length - 1) {
+      state.idx += 1; pushHash(state.lang, state.idx); applyState();
+    } else if (e.key === '/') {
+      e.preventDefault(); searchEl.focus();
+    }
+  });
+
+  // init
+  const initial = parseHash();
+  if (initial) {
+    state.lang = initial.lang;
+    state.idx = initial.idx;
+  } else {
+    pushHash(state.lang, state.idx);
+  }
+  applyState();
+  preloadAll(state.lang);
+</script>
+</body>
+</html>
