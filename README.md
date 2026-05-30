@@ -1,5 +1,11 @@
 # Agentic System Course — 中文版 + 在线阅读器
 
+<p align="center">
+  <a href="https://ocxers.github.io/agentic-ai-system-course-zh/"><img src="cover-zh.png" alt="课程封面（中文版）" width="46%" /></a>
+  &nbsp;&nbsp;
+  <a href="https://ocxers.github.io/agentic-ai-system-course-zh/"><img src="cover-en.png" alt="Course cover (English)" width="46%" /></a>
+</p>
+
 > 📖 **本仓库是 [bryanyzhu/agentic-ai-system-course](https://github.com/bryanyzhu/agentic-ai-system-course) 的中文翻译 + 极简在线阅读器。**
 > 课程原文与设计版权归原作者 **[Yi Zhu (@bryanyzhu)](https://github.com/bryanyzhu)** 所有，本仓库沿用原始 MIT 协议分发。
 >
