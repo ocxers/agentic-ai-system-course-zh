@@ -36,19 +36,19 @@ Agent 有五层可以演化,每层有自己的节奏、自己的门。前两层�
 
 ```mermaid
 flowchart TD
-    Turn["Completed turn"] --> L1["Loop 1: inline write<br/>seconds, in-session"]
-    Turn --> L2["Loop 2: background review fork<br/>seconds-to-minutes, post-turn"]
-    Turn --> L3["Loop 3: curator<br/>hours-to-days, idle-time"]
-    Turn --> L4["Loop 4: eval-gated promotion<br/>days-to-weeks, before activation"]
-    Turn --> L5["Loop 5: model fine-tuning<br/>hours-to-days, asynchronous"]
-    L1 --> Memory["Memory write Ch.07"]
-    L2 --> Proposal["Proposed-update objects"]
-    L3 --> Lifecycle["Skill lifecycle active/stale/archived"]
-    L4 --> Promote["Promote or reject"]
-    L5 --> Adapter["LoRA adapter swap"]
-    Proposal --> Gate["Eval + safety gate"]
+    Turn["已完成的回合"] --> L1["Loop 1:inline write<br/>秒级,会话内"]
+    Turn --> L2["Loop 2:background review fork<br/>秒到分钟级,回合后"]
+    Turn --> L3["Loop 3:curator<br/>小时到天级,空闲时"]
+    Turn --> L4["Loop 4:eval 门控的提升<br/>天到周级,激活前"]
+    Turn --> L5["Loop 5:模型微调<br/>小时到天级,异步"]
+    L1 --> Memory["Memory 写入 第 7 章"]
+    L2 --> Proposal["Proposed-update 对象"]
+    L3 --> Lifecycle["Skill 生命周期 active/stale/archived"]
+    L4 --> Promote["提升或拒绝"]
+    L5 --> Adapter["LoRA adapter 切换"]
+    Proposal --> Gate["Eval + 安全门"]
     Gate --> Promote
-    Promote --> Next["Next session"]
+    Promote --> Next["下一次会话"]
     Lifecycle --> Next
     Adapter --> Next
 ```
@@ -137,14 +137,14 @@ type ProposedUpdate = {
 
 ```mermaid
 flowchart LR
-    Prop["Proposed update"] --> Replay["Replay sampled traces from Ch.16"]
-    Replay --> Old["Baseline current config"]
-    Replay --> New["Candidate with proposed update"]
-    Old --> Compare["Score outcomes via evaluator subagent Ch.10"]
+    Prop["Proposed update"] --> Replay["回放第 16 章采样的 trace"]
+    Replay --> Old["基线:当前配置"]
+    Replay --> New["候选:带提案更新"]
+    Old --> Compare["用 evaluator subagent 给结果打分 第 10 章"]
     New --> Compare
-    Compare --> Gate{"Regression detected?"}
-    Gate -- no --> Promote["Promote to active"]
-    Gate -- yes --> Reject["Reject and archive proposal"]
+    Compare --> Gate{"检测到回归?"}
+    Gate -- 否 --> Promote["提升到 active"]
+    Gate -- 是 --> Reject["拒绝并归档 proposal"]
 ```
 
 来自生产的三条规矩:
@@ -205,15 +205,15 @@ MetaClaw 最有意思的贡献是 *元学习调度器*:微调发生在睡眠时�
 
 ```mermaid
 flowchart LR
-    Active["User actively using agent"] --> Buffer["Append turns to RL buffer"]
-    Buffer --> Watch{"User idle for N minutes?"}
-    Watch -- no --> Active
-    Watch -- yes --> Sched["Scheduler picks update window"]
-    Sched --> Train["LoRA forward-backward on buffer"]
-    Train --> Eval["Eval against held-out corpus"]
-    Eval --> Adapter{"Improvement?"}
-    Adapter -- yes --> Swap["Hot-swap LoRA at next cold start"]
-    Adapter -- no --> Discard["Discard run, log result"]
+    Active["用户正在活跃使用 agent"] --> Buffer["把回合追加到 RL buffer"]
+    Buffer --> Watch{"用户空闲 N 分钟?"}
+    Watch -- 否 --> Active
+    Watch -- 是 --> Sched["调度器选定更新窗口"]
+    Sched --> Train["在 buffer 上跑 LoRA forward-backward"]
+    Train --> Eval["对 held-out 语料做 eval"]
+    Eval --> Adapter{"有提升?"}
+    Adapter -- 是 --> Swap["下次冷启动时热切换 LoRA"]
+    Adapter -- 否 --> Discard["丢弃这次 run,记录结果"]
     Swap --> Active
     Discard --> Active
 ```

@@ -14,26 +14,26 @@
 
 ```mermaid
 flowchart TD
-    Goal["Your goal"] --> Loop["Agent loop (Ch.02)"]
-    Loop --> Tools["Tool registry and validation (Ch.03)"]
-    Loop --> Context["Prompt and context builder (Ch.04)"]
-    Context --> STM["Short-term memory (Ch.05)"]
-    Context --> LTM["Long-term memory (Ch.06, Ch.07)"]
-    Loop --> State["Durable state and checkpoints (Ch.08)"]
-    Loop --> Plan["Planning policy (Ch.09)"]
-    Plan --> Delegation["Subagents (Ch.10)"]
-    Loop --> Ext["Skills, MCP, subagents as units (Ch.14)"]
-    Tools --> Approval["Human in the loop (Ch.12)"]
-    Tools --> Connectors["Connectors, MCP, channels (Ch.13)"]
-    Loop --> Backend["Backend: queues, workers, multi-tenant (Ch.15)"]
-    Backend --> Obs["Traces, metrics, logs, evals (Ch.16)"]
-    Obs --> Routing["Cost, latency, model routing (Ch.17)"]
-    Safety["Safety crosscut (Ch.18)"] -.-> Tools
+    Goal["你的目标"] --> Loop["Agent loop(第 02 章)"]
+    Loop --> Tools["工具注册表与校验(第 03 章)"]
+    Loop --> Context["prompt 与 context 构建器(第 04 章)"]
+    Context --> STM["短期 memory(第 05 章)"]
+    Context --> LTM["长期 memory(第 06、07 章)"]
+    Loop --> State["持久化状态与检查点(第 08 章)"]
+    Loop --> Plan["规划策略(第 09 章)"]
+    Plan --> Delegation["subagent(第 10 章)"]
+    Loop --> Ext["作为单元的 skill、MCP、subagent(第 14 章)"]
+    Tools --> Approval["human in the loop(第 12 章)"]
+    Tools --> Connectors["连接器、MCP、channel(第 13 章)"]
+    Loop --> Backend["后端:队列、worker、多租户(第 15 章)"]
+    Backend --> Obs["trace、指标、日志、eval(第 16 章)"]
+    Obs --> Routing["成本、延迟、模型路由(第 17 章)"]
+    Safety["安全横切面(第 18 章)"] -.-> Tools
     Safety -.-> LTM
     Safety -.-> Connectors
-    Obs -.->|self-evolution Ch.21| LTM
-    Obs -.->|self-evolution Ch.21| Ext
-    Ops["Operations (Ch.19)"] -.-> Backend
+    Obs -.->|自我演化 第 21 章| LTM
+    Obs -.->|自我演化 第 21 章| Ext
+    Ops["运维(第 19 章)"] -.-> Backend
 ```
 
 把它当成一个 *什么可能是承重墙* 的清单,而不是 *什么必须存在* 的蓝图。你的第一版可能只会用到这里的四五个方框 —— loop、几个工具、基础 memory、一个 trace sink。其他的多半是当负载证明必要时才加上去的层。第 11 章是把所有这些粘起来的组合层;第 19 章是让它长期跑下去;第 20 章覆盖 agent 主动行动;第 21 章把可观测性回流到 memory 和 skill 那条边给闭上,让下一次会话能用上。

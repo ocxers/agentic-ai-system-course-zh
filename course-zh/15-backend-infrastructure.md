@@ -55,26 +55,26 @@ OpenCode 暴露的正是这种形态:REST 变更、SSE 实时事件、一个把 
 
 ```mermaid
 sequenceDiagram
-    participant C as Client
-    participant API as API server
-    participant Q as Durable queue
+    participant C as 客户端
+    participant API as API 服务器
+    participant Q as 持久化队列
     participant W as Worker
-    participant DB as State store
-    participant S as Event stream
+    participant DB as 状态存储
+    participant S as 事件流
 
-    C->>API: POST runs with goal
-    API->>DB: create run row, status queued
-    API->>Q: enqueue runId
-    API-->>C: 202 Accepted with runId
-    C->>S: subscribe to runs runId events
-    W->>Q: claim runId via CAS
-    W->>DB: transition to running
-    loop step boundary
-        W->>DB: checkpoint
-        W->>S: emit model, tool, cost, approval events
+    C->>API: POST runs 带 goal
+    API->>DB: 创建 run 行,status queued
+    API->>Q: 入队 runId
+    API-->>C: 202 Accepted 带 runId
+    C->>S: 订阅 runs runId 事件
+    W->>Q: 通过 CAS 抢占 runId
+    W->>DB: 转移到 running
+    loop 步骤边界
+        W->>DB: 检查点
+        W->>S: 发出 model、tool、cost、approval 事件
     end
-    W->>DB: mark completed or waiting_for_approval
-    W->>S: emit terminal event
+    W->>DB: 标记 completed 或 waiting_for_approval
+    W->>S: 发出终态事件
 ```
 
 几条原则,前面都讲过:

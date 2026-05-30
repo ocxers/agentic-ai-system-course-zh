@@ -32,12 +32,12 @@
 
 ```mermaid
 flowchart LR
-    Cron["Cron / schedule<br/>fixed times"] --> Loop["Agent loop"]
-    Event["Event<br/>webhook, channel, file"] --> Loop
-    Watchdog["Watchdog / poll<br/>check condition"] --> Loop
-    Pattern["User pattern<br/>idle, calendar, behavior"] --> Loop
-    Self["Self-initiated<br/>rare; tightly bounded"] --> Loop
-    Loop --> Action["Observe, notify, ask, or act"]
+    Cron["Cron / 定时<br/>固定时间"] --> Loop["Agent loop"]
+    Event["事件<br/>webhook、频道、文件"] --> Loop
+    Watchdog["Watchdog / 轮询<br/>检查条件"] --> Loop
+    Pattern["用户模式<br/>空闲、日历、行为"] --> Loop
+    Self["自发<br/>稀有;受严格限制"] --> Loop
+    Loop --> Action["观察、通知、询问或行动"]
 ```
 
 - **Cron / 定时。** 固定时间 —— 每个工作日早上 9 点、每个整点。最简单、最可预测;适合常规的重复任务。
@@ -181,9 +181,9 @@ MetaClaw 的空闲窗口调度器 (第 21 章的自演化章节会讲得更深) 
 
 ```mermaid
 flowchart LR
-    Obs["Observe<br/>log + metric only"] --> Notify["Notify<br/>user sees later"]
-    Notify --> Ask["Ask<br/>user decides now"]
-    Ask --> Act["Act<br/>agent does it"]
+    Obs["Observe 观察<br/>只记录 + 指标"] --> Notify["Notify 通知<br/>用户稍后看到"]
+    Notify --> Ask["Ask 询问<br/>用户当场决定"]
+    Ask --> Act["Act 行动<br/>agent 自己动手"]
 ```
 
 - **Observe (观察)。** 只是记录事件。没有面向用户的呈现。用于积累指导后面几级的数据。

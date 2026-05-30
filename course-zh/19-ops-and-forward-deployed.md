@@ -20,14 +20,14 @@ Agent 演示跑在一个终端里、一把 API key 上。真实部署服务很�
 
 ```mermaid
 flowchart TD
-    Code["Code + skills + prompts"] --> Build["Build pipeline"]
-    Build --> Pkg["Package: binary, container, npm or pypi"]
-    Pkg --> Deploy["Deploy: env config, secrets, migrations"]
-    Deploy --> Run["Run: health, readiness, metrics (Ch.16)"]
-    Run --> Inc{"Incident?"}
-    Inc -- no --> Run
-    Inc -- yes --> Runbook["Runbook: detect, contain, investigate, recover, learn (Ch.18)"]
-    Runbook --> PM["Post-mortem"]
+    Code["代码 + skill + prompt"] --> Build["构建流水线"]
+    Build --> Pkg["打包:二进制、容器、npm 或 pypi"]
+    Pkg --> Deploy["部署:环境配置、密钥、migration"]
+    Deploy --> Run["运行:健康、就绪、指标(第 16 章)"]
+    Run --> Inc{"事故?"}
+    Inc -- 否 --> Run
+    Inc -- 是 --> Runbook["Runbook:检测、控制、调查、恢复、复盘(第 18 章)"]
+    Runbook --> PM["事后复盘"]
     PM --> Code
 ```
 
@@ -164,9 +164,9 @@ agent 运维里被讨论得最少的模式:*运维者跟 agent 一起交付。* 
 
 ```mermaid
 flowchart LR
-    S1["Stage 1<br/>one dev, one machine<br/>cron jobs, local logs"] --> S2["Stage 2<br/>one team, one box<br/>Docker, shared NFS, Slack alerts"]
-    S2 --> S3["Stage 3<br/>multi-instance<br/>Postgres, budgets, PagerDuty"]
-    S3 --> S4["Stage 4<br/>SRE-managed<br/>multi-region, observability stack, canaries"]
+    S1["Stage 1<br/>一个开发者,一台机器<br/>cron 任务,本地日志"] --> S2["Stage 2<br/>一个团队,一台机器<br/>Docker,共享 NFS,Slack 告警"]
+    S2 --> S3["Stage 3<br/>多实例<br/>Postgres,预算,PagerDuty"]
+    S3 --> S4["Stage 4<br/>SRE 托管<br/>多区域,可观测性栈,金丝雀"]
 ```
 
 阶段之间的迁移本身就是信号:

@@ -98,13 +98,18 @@ type Harness = {
 
 ```mermaid
 stateDiagram-v2
+    state "启动" as Boot
+    state "就绪" as Ready
+    state "Tick" as Tick
+    state "排空中" as Draining
+    state "关闭" as Shutdown
     [*] --> Boot
-    Boot --> Ready : services initialized + health green
-    Ready --> Tick : user message / scheduled trigger
-    Tick --> Tick : next request
+    Boot --> Ready : service 初始化完成 + 健康检查通过
+    Ready --> Tick : 用户消息 / 定时触发
+    Tick --> Tick : 下一个请求
     Tick --> Draining : SIGINT / SIGTERM
     Ready --> Draining : SIGINT / SIGTERM
-    Draining --> Shutdown : in-flight runs drained or deadline hit
+    Draining --> Shutdown : 在飞行 run 已排空或到达 deadline
     Shutdown --> [*]
 ```
 

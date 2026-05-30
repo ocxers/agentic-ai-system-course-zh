@@ -235,6 +235,41 @@
   .home .home-cta:hover { opacity: 0.88; }
   .home .home-hint { margin-top: 14px; color: var(--muted); font-size: 13px; }
 
+  /* ---------- English original toggle (中文版 only) ---------- */
+  /* hidden by default, revealed on hovering its host — same idea as the diagram fullscreen button */
+  .en-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    vertical-align: middle;
+    width: 18px; height: 18px; margin-left: 5px; padding: 0; flex: none;
+    border: 1px solid var(--border); border-radius: 5px;
+    background: transparent; color: var(--muted);
+    cursor: pointer; opacity: 0; pointer-events: none;
+    transition: opacity .15s, color .12s, border-color .12s, background .12s;
+  }
+  :is(h1,h2,h3,h4,h5,h6,p,li):hover > .en-toggle,
+  .en-table-wrap:hover > .en-toggle { opacity: 1; pointer-events: auto; }
+  .en-toggle:hover { color: var(--fg); border-color: var(--muted); background: var(--hover); }
+  .en-toggle.active { color: var(--accent); border-color: var(--accent); background: var(--hover); }
+  .en-toggle svg { width: 12px; height: 12px; display: block; }
+  .en-table-wrap { position: relative; }
+  .en-orig {
+    margin: 0.4em 0 1.1em;
+    color: var(--muted); font-size: 0.95em; line-height: 1.8;
+    text-decoration: underline dashed; text-decoration-color: var(--muted);
+    text-underline-offset: 5px;
+  }
+  .en-orig code { text-decoration: none; }
+  li > .en-orig { margin: 0.25em 0 0.35em; }
+  /* headings render their original at body size, not heading size */
+  h1 + .en-orig, h2 + .en-orig, h3 + .en-orig, h4 + .en-orig { font-size: 1rem; font-weight: 400; margin-top: 0.3em; }
+  /* table original: a block (no text underline), marked with a dashed rail + caption */
+  .en-orig-block {
+    text-decoration: none; margin: 0.5em 0 1.4em;
+    border-left: 2px dashed var(--muted); padding-left: 14px;
+  }
+  .en-orig-block > table { margin-top: 0.3em; }
+  table + .en-toggle { margin: 0.4em 0 0; }
+
   .content h1, .content h2, .content h3, .content h4 { line-height: 1.3; font-weight: 600; margin: 1.8em 0 0.6em; }
   .content h1 { font-size: 2em; margin-top: 0; letter-spacing: -0.01em; }
   .content h2 { font-size: 1.4em; padding-top: 0.6em; border-top: 1px solid var(--border); margin-top: 2.4em; }
@@ -307,6 +342,26 @@
   .expand-btn:focus { opacity: 1; }
   .expand-btn:hover { color: var(--fg); border-color: var(--muted); }
   .expand-btn svg { width: 12px; height: 12px; }
+  /* diagram translate toggle — sits just left of the fullscreen button */
+  .diagram-en-toggle {
+    position: absolute;
+    top: 8px; right: 40px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    width: 26px; height: 26px;
+    border-radius: 5px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.12s, border-color 0.12s, background 0.12s;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0;
+  }
+  .mermaid-wrap:hover .diagram-en-toggle,
+  .diagram-en-toggle:focus { opacity: 1; }
+  .diagram-en-toggle:hover { color: var(--fg); border-color: var(--muted); background: var(--hover); }
+  .diagram-en-toggle.active { color: var(--accent); border-color: var(--accent); }
+  .diagram-en-toggle svg { width: 12px; height: 12px; }
 
   /* fullscreen modal */
   .modal {
@@ -386,6 +441,23 @@
     z-index: 101;
   }
   .modal-close:hover { background: var(--hover); }
+  /* translate toggle inside the fullscreen modal, just left of the close button */
+  .modal-translate {
+    position: fixed;
+    top: 16px; right: 60px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    z-index: 101;
+  }
+  .modal-translate:hover { background: var(--hover); color: var(--fg); }
+  .modal-translate.active { color: var(--accent); border-color: var(--accent); }
+  .modal-translate svg { width: 16px; height: 16px; }
+  .modal-translate[hidden] { display: none; }
 
   /* pager */
   .pager {
@@ -503,6 +575,9 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
     </button>
   </div>
+  <button class="modal-translate" id="modalTranslate" aria-label="显示英文原图" title="显示英文原图" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h7M9 3v2c0 4-2 7-5 9M5 9c0 2.5 2 4.5 5 5.5"/><path d="M13.5 21l3.5-8 3.5 8M14.7 18h4.6"/></svg>
+  </button>
   <button class="modal-close" id="modalClose" aria-label="close">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6l-12 12"/></svg>
   </button>
@@ -797,7 +872,17 @@
     }
     content.innerHTML = marked.parse(md) + pagerHTML();
     window.scrollTo({ top: 0, behavior: 'instant' });
+    let enMd = null;
+    if (state.lang === 'course-zh') {
+      // attach per-unit English-original toggles (read the source when the translation is unclear)
+      try {
+        enMd = await fetchChapter('course', state.idx);
+        if (state.lang === 'course-zh') attachEnglishOriginals(content, md, enMd);
+      } catch (e) { enMd = null; /* English source unavailable — skip silently */ }
+    }
     await renderMermaidBlocks();
+    // diagrams whose labels were translated get an in-place EN/中文 toggle next to fullscreen
+    if (state.lang === 'course-zh' && enMd) attachDiagramToggles(md, enMd);
     renderTOC();
     // expand the group containing the active chapter
     const gi = GROUPS.findIndex(g => g.items.includes(state.idx));
@@ -807,6 +892,167 @@
       renderTOC();
     }
   }
+  // ---------- per-unit English original (中文版) ----------
+  // The zh translation mirrors the en source block-for-block, so rendering both to HTML
+  // yields structurally identical trees: the k-th heading / paragraph / list-item in the
+  // zh DOM matches the k-th one in the en DOM. We zip them by index and attach a toggle to
+  // each translated unit that reveals the English original (dashed-underlined) below it.
+  const EN_TARGET_SEL = 'h1,h2,h3,h4,h5,h6,p,li,table';
+  function ownInlineHTML(el) {
+    const clone = el.cloneNode(true);
+    clone.querySelectorAll('ul, ol, p').forEach(n => n.remove());
+    return clone.innerHTML.trim();
+  }
+  function attachEnglishOriginals(container, zhMd, enMd) {
+    let enRoot;
+    try {
+      enRoot = document.createElement('div');
+      enRoot.innerHTML = marked.parse(enMd);
+    } catch (e) { return; }
+    const zhEls = [...container.querySelectorAll(EN_TARGET_SEL)].filter(el => !el.closest('.pager'));
+    const enEls = [...enRoot.querySelectorAll(EN_TARGET_SEL)];
+    // only proceed when the two trees line up 1:1, else we'd pair the wrong original
+    if (zhEls.length !== enEls.length) return;
+    zhEls.forEach((z, k) => {
+      const e = enEls[k];
+      if (!e || z.tagName !== e.tagName) return;
+      const isLi = z.tagName === 'LI';
+      const isTable = z.tagName === 'TABLE';
+      // loose list item (<li><p>..</p></li>): let the inner <p> carry the toggle, skip the <li>
+      if (isLi && z.querySelector(':scope > p')) return;
+      // a table is toggled as a whole block (full English table), everything else by its inline text
+      const enHTML = isTable ? e.outerHTML : ownInlineHTML(e);
+      if (!enHTML) return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'en-toggle';
+      btn.title = '显示英文原文';
+      btn.setAttribute('aria-label', '显示英文原文');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h7M9 3v2c0 4-2 7-5 9M5 9c0 2.5 2 4.5 5 5.5"/><path d="M13.5 21l3.5-8 3.5 8M14.7 18h4.6"/></svg>';
+      const orig = document.createElement('div');
+      orig.className = isTable ? 'en-orig en-orig-block' : 'en-orig';
+      orig.hidden = true;
+      orig.setAttribute('lang', 'en');
+      orig.innerHTML = enHTML;
+      if (isTable) {
+        // wrap table + toggle + original so the toggle reveals on hovering the table region
+        const tw = document.createElement('div');
+        tw.className = 'en-table-wrap';
+        z.parentNode.insertBefore(tw, z);
+        tw.appendChild(z);
+        tw.appendChild(btn);
+        tw.appendChild(orig);
+      } else {
+        z.appendChild(document.createTextNode(' '));
+        z.appendChild(btn);
+        if (isLi) {
+          // place the original inside the item, before any nested sub-list
+          const sub = z.querySelector(':scope > ul, :scope > ol');
+          if (sub) z.insertBefore(orig, sub); else z.appendChild(orig);
+        } else {
+          z.after(orig);
+        }
+      }
+      btn.addEventListener('click', () => {
+        const show = orig.hidden;
+        orig.hidden = !show;
+        btn.classList.toggle('active', show);
+        btn.setAttribute('aria-expanded', String(show));
+        btn.title = show ? '收起英文原文' : '显示英文原文';
+      });
+    });
+  }
+
+  // pull the raw source of each ```mermaid block, in document order
+  function extractMermaidSources(md) {
+    const out = [];
+    const re = /```mermaid\r?\n([\s\S]*?)```/g;
+    let m;
+    while ((m = re.exec(md)) !== null) out.push(m[1].replace(/\s+$/, ''));
+    return out;
+  }
+
+  // render (and cache on the wrap) the English version of a translatable diagram
+  async function diagramEnSvg(wrap) {
+    if (wrap._enSvg) return wrap._enSvg;
+    if (!wrap._enSrc) return null;
+    try {
+      const { svg } = await mermaid.render('mm-en-' + Date.now() + '-' + (wrap._enKey || 0), sanitizeMermaid(wrap._enSrc));
+      const tmp = document.createElement('div'); tmp.innerHTML = svg;
+      wrap._enSvg = tmp.querySelector('svg');
+    } catch (e) { return null; }
+    return wrap._enSvg;
+  }
+
+  // for diagrams whose labels were translated, add a toggle (left of fullscreen) that
+  // swaps the rendered diagram between 中文 and the English original in place
+  function attachDiagramToggles(zhMd, enMd) {
+    const zhSrc = extractMermaidSources(zhMd);
+    const enSrc = extractMermaidSources(enMd);
+    const wraps = [...document.querySelectorAll('#content .mermaid-wrap')];
+    if (wraps.length !== zhSrc.length) return; // alignment uncertain — bail
+    wraps.forEach((wrap, k) => {
+      const en = enSrc[k];
+      if (en == null || en === zhSrc[k]) return; // identical in both languages — nothing to translate
+      const zhSvg = wrap.querySelector(':scope > svg');
+      if (!zhSvg) return; // render failed / fell back to <pre>
+      const expandBtn = wrap.querySelector(':scope > .expand-btn');
+      // expose to the fullscreen modal so its translate button can reuse these
+      wrap._zhSvg = zhSvg;
+      wrap._enSrc = en;
+      wrap._enKey = k;
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'diagram-en-toggle';
+      btn.title = '显示英文原图';
+      btn.setAttribute('aria-label', '显示英文原图');
+      btn.setAttribute('aria-pressed', 'false');
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h7M9 3v2c0 4-2 7-5 9M5 9c0 2.5 2 4.5 5 5.5"/><path d="M13.5 21l3.5-8 3.5 8M14.7 18h4.6"/></svg>';
+
+      let showingEn = false, busy = false;
+      btn.addEventListener('click', async () => {
+        if (busy) return;
+        const cur = wrap.querySelector(':scope > svg');
+        if (!showingEn) {
+          busy = true;
+          const enSvg = await diagramEnSvg(wrap);
+          busy = false;
+          if (!enSvg || !cur) return;
+          cur.replaceWith(enSvg);
+          showingEn = true;
+          btn.classList.add('active');
+          btn.setAttribute('aria-pressed', 'true');
+          btn.title = '显示中文图';
+        } else {
+          if (cur) cur.replaceWith(zhSvg);
+          showingEn = false;
+          btn.classList.remove('active');
+          btn.setAttribute('aria-pressed', 'false');
+          btn.title = '显示英文原图';
+        }
+      });
+
+      if (expandBtn) wrap.insertBefore(btn, expandBtn); else wrap.appendChild(btn);
+    });
+  }
+
+  // In stateDiagrams, ':' is the label delimiter, so a colon inside a transition label
+  // (e.g. "A --> B : note (stop_reason: end_turn)") is a parse error. The course source has
+  // one such diagram; escape any colon after the label delimiter using mermaid's '#58;' code.
+  function sanitizeMermaid(src) {
+    const head = src.trimStart().split('\n')[0].trim();
+    if (!/^stateDiagram(-v2)?\b/.test(head)) return src;
+    return src.split('\n').map(line => {
+      const arrow = line.indexOf('-->');
+      if (arrow === -1) return line;
+      const delim = line.indexOf(':', arrow);
+      if (delim === -1) return line;
+      return line.slice(0, delim + 1) + line.slice(delim + 1).replace(/:/g, '#58;');
+    }).join('\n');
+  }
+
   async function renderMermaidBlocks() {
     const blocks = document.querySelectorAll('#content .mermaid');
     for (let i = 0; i < blocks.length; i++) {
@@ -815,7 +1061,7 @@
       el.dataset.src = encodeURIComponent(src);
       const id = `mm-${Date.now()}-${i}`;
       try {
-        const { svg } = await mermaid.render(id, src);
+        const { svg } = await mermaid.render(id, sanitizeMermaid(src));
         el.outerHTML = svg;
       } catch (err) {
         el.outerHTML = `<pre><code>${escapeHTML(src)}</code></pre>`;
@@ -875,9 +1121,12 @@
   const zoomInBtn = document.getElementById('zoomInBtn');
   const zoomOutBtn = document.getElementById('zoomOutBtn');
   const zoomResetBtn = document.getElementById('zoomResetBtn');
+  const modalTranslate = document.getElementById('modalTranslate');
   const ZOOM_MIN = 0.25, ZOOM_MAX = 8, ZOOM_STEP = 1.25;
   let modalZoom = 1;
   let modalKind = null; // 'svg' | 'pre'
+  let modalWrap = null;        // the diagram wrapper currently shown (for the translate toggle)
+  let modalShowingEn = false;  // whether the modal is currently showing the English diagram
 
   function setZoom(z) {
     modalZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
@@ -898,28 +1147,57 @@
   function zoomOut() { setZoom(modalZoom / ZOOM_STEP); }
   function zoomReset() { setZoom(1); modalInner.scrollTo({ top: 0, left: 0 }); }
 
+  function mountSvgInModal(svgEl) {
+    modalInner.innerHTML = '';
+    const clone = svgEl.cloneNode(true);
+    clone.removeAttribute('width');
+    clone.removeAttribute('height');
+    clone.style.maxWidth = '';
+    clone.style.maxHeight = '';
+    if (!clone.getAttribute('viewBox') && svgEl.getBBox) {
+      try { const bb = svgEl.getBBox(); clone.setAttribute('viewBox', `${bb.x} ${bb.y} ${bb.width} ${bb.height}`); } catch (e) {}
+    }
+    modalInner.appendChild(clone);
+    modalKind = 'svg';
+  }
   function openModal(wrap) {
     const svg = wrap.querySelector(':scope > svg');
     const pre = wrap.querySelector(':scope > pre');
-    modalInner.innerHTML = '';
+    modalWrap = wrap;
     if (svg) {
-      const clone = svg.cloneNode(true);
-      clone.removeAttribute('width');
-      clone.removeAttribute('height');
-      clone.style.maxWidth = '';
-      clone.style.maxHeight = '';
-      if (!clone.getAttribute('viewBox') && svg.getBBox) {
-        const bb = svg.getBBox();
-        clone.setAttribute('viewBox', `${bb.x} ${bb.y} ${bb.width} ${bb.height}`);
+      mountSvgInModal(svg);
+      if (wrap._zhSvg) {
+        // translatable diagram → offer the 中/英 toggle, matching whatever is currently shown
+        modalShowingEn = (svg === wrap._enSvg);
+        modalTranslate.hidden = false;
+        modalTranslate.classList.toggle('active', modalShowingEn);
+        modalTranslate.title = modalShowingEn ? '显示中文图' : '显示英文原图';
+      } else {
+        modalTranslate.hidden = true;
       }
-      modalInner.appendChild(clone);
-      modalKind = 'svg';
     } else if (pre) {
+      modalInner.innerHTML = '';
       modalInner.appendChild(pre.cloneNode(true));
       modalKind = 'pre';
+      modalTranslate.hidden = true;
     } else return;
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
+    setZoom(1);
+    modalInner.scrollTo({ top: 0, left: 0 });
+  }
+  async function modalShowLang(en) {
+    if (!modalWrap || !modalWrap._zhSvg) return;
+    if (en) {
+      const enSvg = await diagramEnSvg(modalWrap);
+      if (!enSvg) return;
+      mountSvgInModal(enSvg);
+    } else {
+      mountSvgInModal(modalWrap._zhSvg);
+    }
+    modalShowingEn = en;
+    modalTranslate.classList.toggle('active', en);
+    modalTranslate.title = en ? '显示中文图' : '显示英文原图';
     setZoom(1);
     modalInner.scrollTo({ top: 0, left: 0 });
   }
@@ -928,9 +1206,12 @@
     modal.setAttribute('aria-hidden', 'true');
     modalInner.innerHTML = '';
     modalKind = null;
+    modalWrap = null;
+    modalTranslate.hidden = true;
   }
   modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
   document.getElementById('modalClose').addEventListener('click', closeModal);
+  modalTranslate.addEventListener('click', () => modalShowLang(!modalShowingEn));
   zoomInBtn.addEventListener('click', zoomIn);
   zoomOutBtn.addEventListener('click', zoomOut);
   zoomResetBtn.addEventListener('click', zoomReset);

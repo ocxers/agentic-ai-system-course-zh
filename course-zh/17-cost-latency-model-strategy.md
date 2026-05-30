@@ -63,22 +63,22 @@ type ModelProfile = {
 
 ```mermaid
 flowchart TD
-    Task["Incoming step or call"] --> L1{"Task to profile"}
-    L1 -- planner --> Plan["plan agent uses fast"]
-    L1 -- builder --> Build["build agent uses deep"]
-    L1 -- reviewer --> Rev["review agent uses fast"]
-    L1 -- compactor --> Comp["compaction uses auxiliary fast"]
-    Plan --> L2{"Profile to provider"}
+    Task["进来的 step 或调用"] --> L1{"任务到档位"}
+    L1 -- planner --> Plan["plan agent 用 fast"]
+    L1 -- builder --> Build["build agent 用 deep"]
+    L1 -- reviewer --> Rev["review agent 用 fast"]
+    L1 -- compactor --> Comp["压缩用辅助 fast"]
+    Plan --> L2{"档位到 provider"}
     Build --> L2
     Rev --> L2
     Comp --> L2
-    L2 -- primary --> P1["Provider A model"]
-    L2 -- fallback --> P2["Provider B model"]
-    P1 --> Call["Call"]
+    L2 -- primary --> P1["Provider A 模型"]
+    L2 -- fallback --> P2["Provider B 模型"]
+    P1 --> Call["调用"]
     P2 --> Call
-    Call --> Q{"Quality check ok?"}
-    Q -- yes --> Done["Return"]
-    Q -- no --> Escalate["Escalate to next stronger profile"]
+    Call --> Q{"质量检查通过?"}
+    Q -- yes --> Done["返回"]
+    Q -- no --> Escalate["升级到下一个更强档位"]
     Escalate --> L2
 ```
 
@@ -239,13 +239,13 @@ Paperclip 在 issue 上的 `assigneeAdapterOverrides` JSONB 正是这个 — 一
 
 ```mermaid
 flowchart LR
-    Traces["Trace corpus from Ch.16"] --> Old["Current profile"]
-    Traces --> New["Candidate profile"]
-    Old --> Compare["Compare task outcomes"]
+    Traces["第 16 章的 trace 语料"] --> Old["当前档位"]
+    Traces --> New["候选档位"]
+    Old --> Compare["对比任务结果"]
     New --> Compare
-    Compare --> Pass{"No critical regression?"}
-    Pass -- yes --> Promote["Gradual rollout"]
-    Pass -- no --> Keep["Keep current route"]
+    Compare --> Pass{"无关键回退?"}
+    Pass -- yes --> Promote["渐进发布"]
+    Pass -- no --> Keep["保持当前路由"]
 ```
 
 这是第 16 章的 eval-as-observability 模式应用到路由上。架构和 provider 无关:收集生产 trace(第 16 章),在候选档位上回放,用 evaluator 子 agent(第 10 章验证模式)或确定性比较给结果打分,给发布把关。可能的话按租户做 eval — 在一个工作负载上有效的档位可能在另一个上回退。

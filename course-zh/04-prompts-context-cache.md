@@ -22,12 +22,12 @@ System prompt 不是一个字符串。它是一个组装出来的结构,有两�
 
 ```mermaid
 flowchart TD
-    A["Identity / system instructions<br/>(weeks-stable)"] --> B["Tool schemas + descriptions<br/>(release-stable)"]
-    B --> C["Project / workspace context<br/>(session-stable)"]
-    C --> D["Skill index + frozen memory<br/>(session-stable)"]
-    D --> E["Older conversation turns<br/>(volatile)"]
-    E --> F["Recent tool results<br/>(volatile)"]
-    F --> G["Latest user message<br/>(volatile)"]
+    A["身份 / system 指令<br/>(以周计稳定)"] --> B["工具 schema + 描述<br/>(发布版稳定)"]
+    B --> C["项目 / 工作区上下文<br/>(会话稳定)"]
+    C --> D["技能索引 + 冻结的内存<br/>(会话稳定)"]
+    D --> E["较早的对话轮次<br/>(易变)"]
+    E --> F["近期工具结果<br/>(易变)"]
+    F --> G["最新用户消息<br/>(易变)"]
 
     style A fill:#d8f0d8
     style B fill:#d8f0d8

@@ -28,16 +28,16 @@
 
 ```mermaid
 sequenceDiagram
-    participant App as Your application
-    participant LLM as Model
-    participant Tool as Tool function
+    participant App as 你的应用
+    participant LLM as 模型
+    participant Tool as 工具函数
 
-    App->>LLM: user message + tool schemas
-    LLM-->>App: tool_use block (a request, not a call)
+    App->>LLM: 用户消息 + 工具 schema
+    LLM-->>App: tool_use 块(一个请求,不是一次调用)
     App->>Tool: execute(name, arguments)
-    Tool-->>App: result
-    App->>LLM: tool_result message
-    LLM-->>App: final answer
+    Tool-->>App: 结果
+    App->>LLM: tool_result 消息
+    LLM-->>App: 最终回答
 ```
 
 1. **描述工具。** 把用户消息和一份工具定义列表一起发送 —— 名称、描述、参数的 JSON schema。

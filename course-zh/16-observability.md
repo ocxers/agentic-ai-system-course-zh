@@ -36,15 +36,15 @@
 ```mermaid
 graph TD
     Root["agent.run<br/>run_id, tenant_id, model"]
-    Step1["agent.step turn 1"]
+    Step1["agent.step 第 1 轮"]
     M1["model.call<br/>input_tokens, output_tokens"]
     T1["tool.call read_file"]
     T2["tool.call grep"]
-    Step2["agent.step turn 2"]
+    Step2["agent.step 第 2 轮"]
     M2["model.call"]
     A1["approval.request<br/>edit_file"]
     SA["subagent.run reviewer"]
-    Step3["agent.step turn 3"]
+    Step3["agent.step 第 3 轮"]
     M3["model.call finish_reason end_turn"]
     Root --> Step1
     Step1 --> M1
@@ -257,12 +257,12 @@ trace 变成一份回归数据集。在改系统提示词、模型档位、工�
 
 ```mermaid
 flowchart LR
-    Traces["Trace corpus"] --> Replay["Replay inputs"]
-    Candidate["New prompt or model or policy"] --> Replay
-    Replay --> Judge["Evaluator agent or scorer"]
-    Judge --> Gate{"Regression?"}
-    Gate -- no --> Promote["Gradual rollout"]
-    Gate -- yes --> Block["Block deploy and investigate"]
+    Traces["Trace 语料"] --> Replay["回放输入"]
+    Candidate["新提示词或模型或策略"] --> Replay
+    Replay --> Judge["Evaluator 子 agent 或打分器"]
+    Judge --> Gate{"有回归?"}
+    Gate -- 否 --> Promote["逐步上线"]
+    Gate -- 是 --> Block["拦截发布并排查"]
 ```
 
 架构很简单:收集生产 trace,对候选变更回放,给结果打分(语义相似度、结构化字段比较、第 10 章验证模式里那种 evaluator 子 agent),给上线开闸门。eval 套件是你抵御静默回归的安全网 — 那种通过测试、抽检看着合理、只在一周后到生产里才暴露的回归。

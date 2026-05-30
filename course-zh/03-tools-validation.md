@@ -36,19 +36,19 @@ OpenCode 把这件事做得很具体:`explore` agent 拿到只读工具(search�
 
 ```mermaid
 flowchart LR
-    M["Model tool request"] --> K{"Known tool?"}
-    K -- no --> F1["fatal: unknown tool"]
-    K -- yes --> T{"Args parse?"}
-    T -- no --> R1["recoverable: schema error"]
-    T -- yes --> S{"Semantically safe?"}
-    S -- no --> R2["recoverable: bad inputs"]
-    S -- yes --> P{"Permission allows?"}
-    P -- no --> F2["fatal: denied"]
-    P -- yes --> H["Run handler"]
-    H --> E{"Handler ok?"}
-    E -- no --> R3["recoverable: tool error"]
-    E -- yes --> C["Clip + envelope"]
-    C --> O["tool_result back to loop"]
+    M["模型工具请求"] --> K{"工具已知?"}
+    K -- no --> F1["fatal:未知工具"]
+    K -- yes --> T{"参数能 parse?"}
+    T -- no --> R1["recoverable:schema 错误"]
+    T -- yes --> S{"语义安全?"}
+    S -- no --> R2["recoverable:输入有误"]
+    S -- yes --> P{"权限允许?"}
+    P -- no --> F2["fatal:被拒"]
+    P -- yes --> H["运行 handler"]
+    H --> E{"Handler 成功?"}
+    E -- no --> R3["recoverable:工具错误"]
+    E -- yes --> C["截断 + 信封"]
+    C --> O["tool_result 返回循环"]
 ```
 
 顺序重要。便宜的检查先跑 —— *known* 先于 *typed*,*typed* 先于 *semantic*,*semantic* 先于 *permission*,*permission* 先于 *execute*。在解析了一大块 JSON 之后才拒绝权限会浪费 token。在 handler 已经打开文件之后再去做语义检查(路径是不是在 workspace 里)就太晚了。参考里的每个系统都收敛到大致这个顺序,即使它们对阶段的命名不同。

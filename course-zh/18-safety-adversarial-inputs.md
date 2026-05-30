@@ -43,30 +43,30 @@ agent 安全里最大的设计错误就是让一个 T1 或 T2 字节被当成 T5
 
 ```mermaid
 flowchart LR
-    subgraph SRC["Sources, by trust tier"]
-        T0["T0 User input"]
-        T1["T1 Tool output"]
-        T2["T2 Memory / retrieved context"]
-        T3["T3 Plugins / MCP servers"]
-        T4["T4 Channel adapters"]
+    subgraph SRC["来源,按信任层级"]
+        T0["T0 用户输入"]
+        T1["T1 工具输出"]
+        T2["T2 Memory / 检索到的 context"]
+        T3["T3 插件 / MCP server"]
+        T4["T4 Channel 适配器"]
     end
     subgraph AGT["Agent"]
-        Prompt["Prompt assembly"]
-        Model["Model"]
-        Tools["Scoped tools"]
+        Prompt["Prompt 组装"]
+        Model["模型"]
+        Tools["作用域受限的工具"]
     end
-    subgraph EXT["External effects"]
-        World["Files, APIs, payments, messages"]
+    subgraph EXT["外部副作用"]
+        World["文件、API、支付、消息"]
     end
     T0 --> Prompt
     T1 --> Prompt
     T2 --> Prompt
-    T3 -.->|capability list| Tools
+    T3 -.->|能力清单| Tools
     T4 --> Prompt
     Prompt --> Model
     Model --> Tools
     Tools --> World
-    World -.->|next turn| T1
+    World -.->|下一轮| T1
 ```
 
 每条箭头都是攻击可能落脚的位置。本章的防御坐落在箭头上,不是只在端点。
@@ -236,18 +236,18 @@ Anthropic 的 *Agentic misalignment* 研究(2025)记录了一类行为:给定目
 
 ```mermaid
 flowchart LR
-    In["Input arrives"] --> SaniA["Adapter sanitize<br/>Ch.13"]
-    SaniA --> SchemaIn["Schema validate<br/>Ch.03"]
-    SchemaIn --> ThreatScan["Threat-pattern scan<br/>Ch.07 / this chapter"]
-    ThreatScan --> Label["Wrap as untrusted<br/>tier-tagged"]
+    In["输入到达"] --> SaniA["适配器净化<br/>第 13 章"]
+    SaniA --> SchemaIn["Schema 校验<br/>第 3 章"]
+    SchemaIn --> ThreatScan["威胁模式扫描<br/>第 7 章 / 本章"]
+    ThreatScan --> Label["包装为不可信<br/>带层级标签"]
     Label --> Loop["Agent loop"]
-    Loop --> ToolReq["Tool dispatch request"]
-    ToolReq --> PermCheck["Permission allow ask deny<br/>Ch.12"]
-    PermCheck --> ToolValidate["Tool arg validate path SSRF<br/>Ch.03"]
-    ToolValidate --> Approval["Approval gate if destructive<br/>Ch.12"]
-    Approval --> Execute["Execute in sandbox<br/>Ch.03 / this chapter"]
-    Execute --> ResultClip["Result clip and redact<br/>Ch.05 / Ch.16"]
-    ResultClip --> LogRedact["Log and trace redact<br/>Ch.15 / Ch.16"]
+    Loop --> ToolReq["工具派发请求"]
+    ToolReq --> PermCheck["权限 allow ask deny<br/>第 12 章"]
+    PermCheck --> ToolValidate["工具参数校验 path SSRF<br/>第 3 章"]
+    ToolValidate --> Approval["破坏性动作的审批闸门<br/>第 12 章"]
+    Approval --> Execute["在沙箱中执行<br/>第 3 章 / 本章"]
+    Execute --> ResultClip["结果 clip 与脱敏<br/>第 5 章 / 第 16 章"]
+    ResultClip --> LogRedact["日志与 trace 脱敏<br/>第 15 章 / 第 16 章"]
     LogRedact --> Loop
 ```
 

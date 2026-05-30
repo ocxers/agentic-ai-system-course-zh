@@ -36,13 +36,18 @@
 
 ```mermaid
 stateDiagram-v2
+    state "观察" as Observe
+    state "规划" as Plan
+    state "行动" as Act
+    state "反思" as Reflect
+    state "停止" as Stop
     [*] --> Observe
-    Observe --> Plan : messages ready
-    Plan --> Act : tool requests
-    Plan --> Stop : final answer (stop_reason: end_turn)
-    Act --> Reflect : results collected
-    Reflect --> Stop : a stop condition fired
-    Reflect --> Observe : continue
+    Observe --> Plan : 消息就绪
+    Plan --> Act : 工具请求
+    Plan --> Stop : 最终回答 (stop_reason: end_turn)
+    Act --> Reflect : 结果已收集
+    Reflect --> Stop : 触发了停止条件
+    Reflect --> Observe : 继续
     Stop --> [*]
 ```
 
@@ -143,20 +148,20 @@ Act 与 Reflect 之间的过渡 —— 结果收集完毕、还未附加之前 �
 
 ```mermaid
 sequenceDiagram
-    participant L as Loop controller
-    participant M as Model
-    participant P as Policy
-    participant T as Tools
-    participant S as State store
+    participant L as 循环控制器
+    participant M as 模型
+    participant P as 策略
+    participant T as 工具
+    participant S as 状态存储
 
-    L->>M: Observe + Plan (messages)
-    M-->>L: tool calls or final answer
-    L->>P: Permission check
-    P-->>L: approve / deny / escalate
-    L->>T: Dispatch approved tool calls
-    T-->>L: tool results
-    L->>S: Save step
-    L->>L: Reflect + check stop conditions
+    L->>M: 观察 + 规划 (消息)
+    M-->>L: 工具调用或最终回答
+    L->>P: 权限检查
+    P-->>L: 批准 / 拒绝 / 升级
+    L->>T: 派发已批准的工具调用
+    T-->>L: 工具结果
+    L->>S: 保存这一步
+    L->>L: 反思 + 检查停止条件
 ```
 
 循环体很小。它周围的边界才是生产系统真正生活的地方。

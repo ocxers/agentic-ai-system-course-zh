@@ -242,18 +242,18 @@ sequenceDiagram
     participant H as Harness
     participant S as MCP server
 
-    H->>S: initialize with protocol version and capabilities
-    S-->>H: server info
+    H->>S: 用协议版本和 capabilities 初始化
+    S-->>H: server 信息
     H->>S: tools list
-    S-->>H: tool schemas
-    Note over H: register as Ch.03 tools
-    loop per session
-        H->>S: tools call with name and args
-        S-->>H: result or error
+    S-->>H: tool schema
+    Note over H: 注册为 Ch.03 的工具
+    loop 每个 session
+        H->>S: tools call 带 name 和 args
+        S-->>H: 结果或错误
     end
-    Note over H,S: disconnect or crash
-    H->>H: mark unavailable, backoff, retry
-    H->>S: re-initialize and re-list
+    Note over H,S: 断开或崩溃
+    H->>H: 标记不可用、回退、重试
+    H->>S: 重新初始化并重新列出
 ```
 
 生产里的难点：
