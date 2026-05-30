@@ -2,17 +2,17 @@
 
 ## TL;DR
 
-Human-in-the-loop 不是 *"不确定就问用户"*。它是为高影响动作设计的结构化控制面：干净地暂停、持久化状态、呈现足够做决定的 context、收集那个决定、审计它、再从同一个点恢复。本章讲的是机制 — 三动作规则集 (allow / ask / deny)、审批面 (inline TUI、web dashboard、async channel)、与 Ch.08 `WaitingApproval` 状态绑定的 suspend-and-resume 协议、人实际看到的 payload、有时间限制的审批与超时策略、多审批者工作流、可信自动化的逃生口,以及当人说不行的时候发生什么。
+人在回路(human-in-the-loop)不是 *"不确定就问用户"* 这么简单。它是为高影响动作设计的结构化控制面:干净利落地暂停、持久化状态、呈现足够做决定的上下文、收集这个决定、留下审计、再从同一个点恢复。本章讲的是它的机制 — 三动作规则集(allow / ask / deny)、几种审批界面(inline TUI、web dashboard、async channel)、与 Ch.08 `WaitingApproval` 状态绑定的暂停-恢复(suspend-and-resume)协议、人实际看到的 payload、带时限的审批与超时策略、多审批者工作流、给可信自动化留的逃生口,以及当人说"不行"时会发生什么。
 
 ---
 
 ## 为什么这件事重要
 
-一个你可能见过的短场景。你的 agent 既有用又能干。它有读文件、写文件、发消息、部署代码的工具。某天模型发出一个 tool call,删错了目录。动作明确;调用语法合法;用户输入 *"清理一下 build 目录"*,模型把它解释得太宽。没有审批门。Agent 完全是在做你允许它做的事。
+一个你大概见过的小场景。你的 agent 既好用又能干。它有读文件、写文件、发消息、部署代码的各种工具。某天模型发出一个工具调用,删错了目录。这个动作意图明确、调用语法合法 — 用户输入的是 *"清理一下 build 目录"*,模型把它理解得太宽泛了。当时没有审批关卡。Agent 做的恰恰就是你允许它做的事。
 
-HITL 是这样一种设计：动作不全相等。读文件和删目录不是同一种操作;它们的审批面也不应该一样。模型可以对 *是什么* 很聪明;但 *应不应该做* 仍然是人类该拍板。
+HITL 背后的设计理念是:动作并非生来平等。读文件和删目录不是同一种操作,它们的审批方式也不该一样。模型可以把 *是什么* 想得很聪明,但 *该不该做* 仍然得由人来拍板。
 
-本章讲的是怎么做到这件事,又不把每个 tool call 都变成一个有摩擦的勾选框。
+本章讲的就是怎么做到这一点 — 而又不把每个工具调用都变成一个磨人的勾选框。
 
 ---
 
@@ -20,7 +20,7 @@ HITL 是这样一种设计：动作不全相等。读文件和删目录不是同
 
 ### Allow / ask / deny — 三动作规则集
 
-跨越 `references/` 里所有生产系统,审批原语都是同一种形态：一份规则列表,每条带一个 pattern 和三种动作之一。最后匹配的赢。
+在 `references/` 里的各个生产系统中,审批原语都是同一个形态:一份规则列表,每条规则带一个 pattern 和三种动作之一。最后匹配中的那条规则说了算。
 
 ```ts
 type PermissionRule = {
@@ -37,36 +37,36 @@ const rules: PermissionRule[] = [
 ];
 ```
 
-记三条规则：
+有三条规则要记住：
 
-- **最后匹配的赢。** 一条更晚、更具体的规则覆盖更早、更宽的。OpenCode 的 `Permission.evaluate` 就是这样。
-- **`ask` 是任何破坏性动作的默认** — 交叉对照 Ch.03 的 `destructive: true` 元数据标志。Runtime 把任何标记为 destructive 的工具提升到 `ask`,除非有显式 `allow` 规则覆盖。
-- **`deny` 在运行中的 session 内不可覆盖。** 用户可以改 config 重启,但运行中的循环对 `deny` 是绝对尊重的。
+- **最后匹配的规则说了算。** 越晚出现、越具体的规则会覆盖越早、越宽泛的规则。OpenCode 的 `Permission.evaluate` 正是这么做的。
+- **任何破坏性动作默认走 `ask`** — 对照 Ch.03 的 `destructive: true` 元数据标志。除非有显式的 `allow` 规则覆盖,runtime 会把任何标记为 destructive 的工具提升到 `ask`。
+- **`deny` 在运行中的 session 内无法被覆盖。** 用户可以改 config 再重启,但运行中的循环对 `deny` 是绝对照办的。
 
-整个机制以 Ch.11 hook 面里的 `pre_tool_call` hook 形式存在。Hook 读规则集、做决定,要么放行调用,要么排队审批,要么把拒绝作为 tool result 返回。
+整个机制以 Ch.11 hook 体系里的 `pre_tool_call` hook 形式存在。Hook 读取规则集、做出决定,然后要么放行这次调用,要么把审批排进队列,要么把一条拒绝作为工具调用结果返回。
 
 ### 审批面
 
-决定 *审批什么* 是一回事。决定 *人在哪里看到它* 才让 HITL 实用。三种主要面：
+决定 *审批什么* 是一回事;决定 *人在哪里看到这次审批* 才是让 HITL 真正落地的关键。主流的有三种界面：
 
-| 面 | 延迟 | 最适合 | 失败模式 |
+| 界面 | 延迟 | 最适合 | 失败模式 |
 |---|---|---|---|
-| **Inline TUI prompt** | 秒级 | 交互式编码、开发流 | 用户不在 — 循环无限阻塞 |
-| **Web dashboard** | 秒–分钟 | 多用户系统、治理流 | 通知淹没在繁忙队列里 |
-| **Async channel** (Slack、Telegram、邮件) | 分钟–小时 | 长跑自动化、下班时间工作 | 回复链混淆 agent 和人 |
+| **Inline TUI prompt** | 秒级 | 交互式编码、开发流程 | 用户不在 — 循环无限阻塞 |
+| **Web dashboard** | 秒–分钟 | 多用户系统、治理流程 | 通知淹没在繁忙的队列里 |
+| **Async channel** (Slack、Telegram、邮件) | 分钟–小时 | 长时间运行的自动化、下班时段的工作 | 回复链让 agent 和人互相搞混 |
 
-生产系统通常支持不止一种。OpenCode 出厂 inline TUI + web;Hermes Agent 加 async channel,让一个长跑 cron job 可以请求审批,人几小时后回复时再继续;Paperclip 倾向 web dashboard + 邮件/Slack 通知。每个 agent 的选择：挑配合用户在询问时刻真实在场状态的那个面。
+生产系统通常不止支持一种。OpenCode 自带 inline TUI + web;Hermes Agent 加上了 async channel,让一个长时间运行的 cron job 能够请求审批,等用户几小时后回复时再继续;Paperclip 偏向 web dashboard 配邮件/Slack 通知。每个 agent 怎么选:挑那个与用户在询问那一刻是否真的在场相匹配的界面。
 
-来自生产的一条规则：*延迟预算越长,payload 必须越富。* 一个 inline TUI prompt 可以靠用户记得刚刚发生什么。一封几小时后的邮件审批必须自包含。
+一条来自生产的经验:*延迟预算越长,payload 就必须越充实。* 一个 inline TUI prompt 可以指望用户还记得刚刚发生了什么;而一封几小时后才看到的邮件审批,内容必须自成一体。
 
-### Suspend 协议
+### 暂停协议
 
-当循环为审批暂停,Ch.08 的 run 状态机走到 `WaitingApproval`。在暂停持久化之前,磁盘上必须有的东西：
+当循环为了审批而暂停时,Ch.08 的 run 状态机会进入 `WaitingApproval`。暂停之前,磁盘上必须持久化好这些东西：
 
-- 待定的 tool call (名字、参数、派发的幂等 key)。
-- 对 run、session、用户和决策 actor 的引用。
-- 原因 — 模型试图做什么,一句话。
-- 到期时间戳 (见下面 *时间限制审批*)。
+- 待定的工具调用(名称、参数、这次派发的幂等 key)。
+- 指向 run、session、用户,以及需要由谁来决策的那个 actor 的引用。
+- 原因 — 用一句话说明模型想做成什么。
+- 到期时间戳(见下面的 *带时限的审批*)。
 - 工具产出的任何 dry-run 预览的快照。
 
 ```ts
@@ -87,7 +87,7 @@ type SuspendedCall = {
 };
 ```
 
-Resume 是反过来的。审批到来时,harness 读取这一行,基于 schema 校验决定 (Ch.03),然后要么重新派发 (可能被编辑过的) 调用,要么把拒绝作为 tool result 返回循环。循环从它暂停的那个精确 step 边界继续 — Ch.08 的幂等 step 规则适用。
+恢复则是反向的过程。审批到来时,harness 读取这一行记录,用 schema 校验这个决定(Ch.03),然后要么重新派发那次(可能被编辑过的)调用,要么把拒绝作为工具调用结果返回给循环。循环会从它暂停时的那个精确 step 边界接着往下走 — Ch.08 的幂等 step 规则在这里同样适用。
 
 ```mermaid
 sequenceDiagram
@@ -115,50 +115,50 @@ sequenceDiagram
     end
 ```
 
-### 人实际看到什么
+### 人实际看到的是什么
 
-Payload 决定 *"好,我批准"* 还是 *"等等,什么?"*。每个审批面都应该展示：
+Payload 是 *"好,我批准"* 和 *"等等,这是什么?"* 之间的分水岭。每个审批界面都应该展示：
 
-- 拟议动作,一句话,白话。
-- 精确参数,按面的格式呈现 (TUI 的 JSON、web 的表单、聊天的 code block)。
-- 当工具支持时的 dry-run 预览 — *"将删除 `/workspace/build` (143 个文件、2.4 GB)。"* (Ch.03 的 dry-run 模式。)
-- Agent 拟议它的原因 — 由模型显式生成,作为 *面向用户的解释*,与 tool call 一同发出,可选附加 plan step 名 (Ch.09) 和工具的确定性元数据 (Ch.03 描述和风险层)。*不要* 从模型的隐藏或最近推理里拉这个：有些 provider 不暴露;暴露出来的不一定与动作对齐;推理 trace 是攻击面 (Ch.18 — 来自先前 tool result 的 prompt injection 形状文本可能反映在那里)。人看到的 rationale 应当来自模型 *为人写的* 字段,而不是窥视它思考的窗口。
-- 风险层以及任何把它提升到 `ask` 的标志。
-- 审批到期前的剩余时间。
+- 拟议的动作,一句话,用大白话说清。
+- 精确的参数,按界面的格式来呈现(TUI 里用 JSON、web 里用表单、聊天里用 code block)。
+- 工具支持时给出 dry-run 预览 — *"将删除 `/workspace/build`(143 个文件、2.4 GB)。"*(Ch.03 的 dry-run 模式。)
+- agent 提出这个动作的理由 — 由模型显式生成,作为一段 *面向用户的说明*,与工具调用一起发出,还可以附上 plan step 的名称(Ch.09)和工具的确定性元数据(Ch.03 的描述与风险层级)。*不要* 从模型隐藏的或最近的推理里去取这段理由:有些 provider 根本不暴露推理;暴露出来的也不一定与动作对得上;而且推理 trace 本身就是一个攻击面(Ch.18 — 来自先前工具调用结果、形似 prompt injection 的文本可能被回显在那里)。人看到的理由应当来自模型 *专门写给人看* 的那个字段,而不是一扇窥探它思考过程的窗户。
+- 风险层级,以及任何把它提升到 `ask` 的标志。
+- 审批到期前还剩多少时间。
 
-OpenCode 的审批对话框为 `edit_file` 渲染 diff;Paperclip 的包含发起 issue 和干系人列表;一些主流商业编码 agent 为昂贵操作显示估算的 token / 成本影响。挑适合你面的偷过来。
+OpenCode 的审批对话框会为 `edit_file` 渲染 diff;Paperclip 的对话框会带上发起这件事的 issue 和干系人列表;一些主流商业编码 agent 则为昂贵操作显示估算的 token / 成本影响。哪个适合你的界面,就把哪个学过来。
 
-### 审批 scope
+### 审批的 scope
 
-多数审批不是真的关于 *这一次调用*。它们是关于 *将来这类调用*。三种真实系统提供的 scope：
+多数审批其实并不是关于 *这一次调用*,而是关于 *将来这一类调用*。真实系统提供三种 scope：
 
 | Scope | 维持到 | 何时用 |
 |---|---|---|
-| **仅这一次调用** | 调用完成 | 真正一次性、高影响动作 |
-| **这次 session** | session 结束或轮换 | 一项任务中的重复调用 |
-| **永久 (有范围)** | 用户从单一界面撤销 | 受信工具,严密限定在安全用例 |
+| **仅这一次调用** | 调用完成 | 真正一次性的高影响动作 |
+| **本次 session** | session 结束或轮换 | 同一项任务中重复出现的调用 |
+| **永久 (有范围)** | 用户从单一界面撤销 | 受信任的工具,且严密限定在安全用例上 |
 
-UI 通常是 *Approve* 下面一组按钮。存储：
+UI 上通常是 *Approve* 下面的一组按钮。底层存储是这样的：
 
-- **这一次调用** — `SuspendedCall` 行更新;别的不变。
-- **这次 session** — session 的 `permission_overrides` map 增加一项;后续调用先匹配它,再匹配全局规则集。
-- **永久** — 用户的 config 增加一条新的 `allow` 规则,下一次 session 启动时生效。*Trust 是有范围的,不是一刀切*：规则被工具名、MCP server 与版本 (外部时 — Ch.13)、租户或工作区,以及一类参数 (具体路径 glob、枚举值、URL 上的域) 约束。在 `web_fetch` 上对 `docs.example.com` 点了 *trust* 的用户,并没有批准 `web_fetch` 对任何 URL。规则应该引用工具定义的 fingerprint,这样描述重写或版本升级会触发一次新询问,而不是悄悄继承旧的 trust。用户必须能从单一界面撤销任何 *永久* 规则,而不是去编辑 YAML — 可撤销性是让宽 scope 能存活的安全阀。
+- **这一次调用** — 更新 `SuspendedCall` 这一行,其余不变。
+- **本次 session** — session 的 `permission_overrides` map 里新增一项;后续调用先和它匹配,再匹配全局规则集。
+- **永久** — 用户的 config 里新增一条 `allow` 规则,在下一次 session 启动时生效。*信任是有范围的,不是一刀切*:这条规则受工具名、MCP server 及其版本(若是外部工具 — Ch.13)、租户或工作区,以及某一类参数(具体的路径 glob、枚举值、URL 上的域名)的约束。一个针对 `web_fetch` 上的 `docs.example.com` 点过 *trust* 的用户,并不等于批准了 `web_fetch` 访问任意 URL。这条规则应当引用工具定义的指纹(fingerprint),这样一来,描述被改写或版本升级时就会触发一次新的询问,而不是悄无声息地继承旧的信任。而且用户必须能从单一界面撤销任何一条 *永久* 规则,而不是去手改 YAML — 可撤销性正是让宽 scope 还能用得安心的那道安全阀。
 
-要避开的陷阱：因为 UI 默认到更宽 scope 而悄悄把 *这次 session* 升级到 *永久*。每个对话框上 scope 都要显式。默认偏窄;扩大是显式的一次点击。
+要避开的陷阱:因为 UI 默认选了更宽的 scope,就把 *本次 session* 悄悄升级成了 *永久*。每个对话框上的 scope 都要显式标出。默认偏窄,扩大范围必须是一次显式的点击。
 
 ### Plan-mode 审批 — 批一次,执行多次
 
-Agent 在 plan mode 时 (Ch.09),最便宜的 HITL 是 *批准 plan,然后执行*。Plan 本身就是审批 payload — 用户看到步骤、批准工作形态,执行器无需逐步询问就推进。
+当 agent 处于 plan mode 时(Ch.09),最省事的 HITL 就是 *批准 plan,然后执行*。Plan 本身就是审批 payload — 用户看到全部步骤、认可这项工作的整体形态,执行器随后无需逐步询问就一路推进。
 
-机制：planner 产出一个 plan,每个步骤打上风险层 *标签和它打算用的具体参数* — 路径、标识符、目标资源、预期 diff。审批对话框显示 plan。批准时,harness 插入一条 session-scope 的 `allow`,*受 plan 参数约束*,不只是工具名。一个说 *编辑 `src/auth.ts`* 的 plan 产生一个 `edit_file` allow,`path = src/auth.ts` (以及对于 diff 形状的工具,一个 diff 大小或范围约束),而不是一条万能的 `edit_file` allow。执行器对 plan 没预料的任何事仍然要询问;通过把拟议调用的参数形状与约束对比来检测 drift — 同样的工具名带新参数是 *drift*,不是 *match*。
+机制是这样的:planner 产出一个 plan,每个步骤都标上风险层级 *以及它打算使用的具体参数* — 路径、标识符、目标资源、预期的 diff。审批对话框展示这个 plan。一旦批准,harness 就插入一条 session-scope 的 `allow`,且 *受 plan 中的参数约束*,而不只是按工具名放行。一个写着 *编辑 `src/auth.ts`* 的 plan,产生的是一条 `path = src/auth.ts` 的 `edit_file` allow(对于产出 diff 的工具,还附带一个 diff 大小或范围的约束),而不是一条万能的 `edit_file` allow。对于 plan 没有预料到的任何事,执行器仍然要询问;通过把拟议调用的参数形态和约束相比对来检测偏离(drift)— 工具名相同但参数是新的,算 *偏离*,不算 *匹配*。
 
-Paperclip 用 `executionPolicy = planning_mode` 实现;OpenCode 的 `plan` agent 写一个 `.opencode/plans/<name>.md`,用户批准后变成 build agent 匹配工具的参数受限 session-scope allow。
+Paperclip 用 `executionPolicy = planning_mode` 来实现这一点;OpenCode 的 `plan` agent 会写一个 `.opencode/plans/<name>.md`,用户批准后,它就变成 build agent 对应工具上参数受限的 session-scope allow。
 
-纪律：别让执行器从 plan 漂太远。如果 plan 说 *编辑 `src/auth.ts` 和 `src/db.ts`*,而执行器提议编辑 `src/payments.ts`,plan-scope 审批不覆盖它 — 升级回用户。参数约束是机械地强制这个;没有它,*"同一工具,不同文件"* 就溜过去了,审批变成许可证而不是契约。
+要守的纪律:别让执行器从 plan 上漂得太远。如果 plan 说的是 *编辑 `src/auth.ts` 和 `src/db.ts`*,而执行器却提议编辑 `src/payments.ts`,那 plan-scope 的审批就管不到它 — 这时要升级回用户那里。是参数约束在机械地强制执行这一点;没有它,*"同一个工具,不同的文件"* 就蒙混过关了,审批也就从一份契约退化成了一张许可证。
 
-### Edit 而不是 approve
+### Edit,而不是 approve
 
-通常人正确的回答既不是 *yes* 也不是 *no*,而是 *不太对,这样做*。生产系统把这变成一等动作。
+很多时候,人正确的回应既不是 *yes* 也不是 *no*,而是 *不太对,改成这样做*。生产系统把这一项做成了头等动作。
 
 ```ts
 type ApprovalDecision =
@@ -181,19 +181,19 @@ function applyEdit(decision: ApprovalDecision, tool: ToolDefinition) {
 }
 ```
 
-OpenCode 的审批对话框包含一个 *Edit* 按钮,打开 inline JSON 编辑器。Hermes Agent 的交互式 TUI 让用户在批准前重写拟议的 shell 命令。主流商业编码 agent 显示 diff 预览,允许用户在说 yes 之前调整拟议文件内容。
+OpenCode 的审批对话框带一个 *Edit* 按钮,点开是一个 inline JSON 编辑器。Hermes Agent 的交互式 TUI 允许用户在批准前重写拟议的 shell 命令。主流商业编码 agent 则会显示 diff 预览,让用户在说 yes 之前调整拟议的文件内容。
 
-来自生产的两个模式：用同样的工具 schema 校验编辑 (一个模型发出的调用通过了校验;一个人编辑过的调用也应该),并把编辑与原始一起记录,审计链路同时显示两者。
+两条来自生产的做法:用同一套工具 schema 来校验这次编辑(模型发出的调用要过校验,人编辑过的调用同样要过),并把编辑后的内容和原始内容一并记录下来,让审计链路把两者都呈现出来。
 
 ### 危险默认检测
 
-有时一个工具在 config 里标了 `allow`,但 *具体那次调用* 以一种模型不太可能注意到的方式有风险。Harness 基于启发式把 `allow` 提升到 `ask`：
+有时一个工具在 config 里标的是 `allow`,但 *具体那一次调用* 以一种模型不太可能察觉的方式带有风险。这时 harness 会基于启发式规则把 `allow` 提升到 `ask`：
 
-- **大影响。** 删除 >100 个文件;写入 >1 MB;影响 >N 条记录的批操作。
-- **危险路径。** 任何碰 `.git`、`.env`、`node_modules`、`/etc`、生产配置文件的。
-- **下班时间执行。** 凌晨 3 点 cron 触发的破坏性操作获得额外审查。
-- **跨租户或跨工作区操作** (Ch.06 命名空间规则)。
-- **生产形状的凭据** 在环境里 (env var 包含 `PROD`、`LIVE`)。
+- **影响面大。** 删除 >100 个文件;写入 >1 MB;影响 >N 条记录的批量操作。
+- **危险路径。** 任何碰到 `.git`、`.env`、`node_modules`、`/etc`、生产配置文件的操作。
+- **下班时段执行。** 凌晨 3 点由 cron 触发的破坏性操作要受到额外审查。
+- **跨租户或跨工作区的操作**(Ch.06 的命名空间规则)。
+- 环境里有 **形似生产环境的凭据**(env var 中包含 `PROD`、`LIVE`)。
 
 ```ts
 // Promotes any matching call from allow → ask, regardless of config.
@@ -206,45 +206,45 @@ function dangerousDefault(call: ToolCall, ctx: AgentContext): boolean {
 }
 ```
 
-Hermes Agent 的 `ToolCallGuardrailController` 和 Paperclip 的 heartbeat 级检查都实现了各种变体。阈值会不一样;原则不变 — 这些是通过类型检查、通过 policy、但仍值得人扫一眼的调用。
+Hermes Agent 的 `ToolCallGuardrailController` 和 Paperclip 的 heartbeat 级检查都实现了这类机制的各种变体。阈值各不相同,但原则不变 — 这些调用过了类型检查、过了 policy,却仍然值得让人扫一眼。
 
-### 时间限制审批
+### 带时限的审批
 
-审批不能永远活着。Harness 必须实现并在三种策略中选一种：
+审批不会永远有效。harness 必须实现以下三种策略,并在其中做选择：
 
-- **过期自动拒绝。** 最安全。请求超时,模型拿到拒绝,循环不采取动作继续。
-- **过期继续。** 阻塞比执行更糟的低风险操作里最务实。很少是正确的默认。
-- **过期升级。** 治理形状：超时把请求路由给备用审批者或更高权限用户。Paperclip 的多审批者流是这样的。
+- **过期即自动拒绝。** 最安全。请求超时,模型收到一条拒绝,循环不采取动作、继续往下走。
+- **过期即继续。** 对那些"阻塞比直接执行更糟"的低风险操作最务实。但很少是正确的默认。
+- **过期即升级。** 偏治理的做法:超时会把请求路由给备用审批者或更高权限的用户。Paperclip 的多审批者流程就是这么做的。
 
-正确默认是 **自动拒绝**,*继续* 只对运维显式选入的工具可用。默认 *继续* 是一个 footgun — 一个被忘掉的审批变成了静默执行。
+正确的默认是 **自动拒绝**,而 *继续* 只对运维显式选入的工具开放。把 *继续* 设成默认是一颗自伤的雷 — 一个被遗忘的审批就变成了静默执行。
 
-一个有用的生产小细节：审批面显示倒计时。归零时,面本身显示结果 (denied / escalated)。审计日志把过期作为一等事件记录,而不是静默超时。
+一个有用的生产小细节:审批界面显示一个倒计时。归零时,界面本身就显示出结果(被拒绝 / 已升级)。审计日志把"过期"作为一等事件记录下来,而不是当成一次静默超时。
 
 ### 子 agent 的审批继承
 
-当父 agent 委派时 (Ch.10),问题变成：父 agent 的审批覆盖子 agent 吗?三种 policy：
+当父 agent 进行委派时(Ch.10),问题就变成:父 agent 的审批能不能覆盖到子 agent?有三种 policy：
 
-- **继承。** 子 agent 用父 agent 的 session-scope 审批运行。最便宜;子 agent scope 窄时安全。
-- **只继承 `allow`。** 从父 agent 继承显式 allow;任何 `ask` 在子 agent 级别重新询问。多数生产系统默认这里。
-- **不继承。** 子 agent 从规则集开始,就这样。最安全;最吵。
+- **继承。** 子 agent 沿用父 agent 的 session-scope 审批来运行。最省事;在子 agent scope 收得很窄时是安全的。
+- **只继承 `allow`。** 从父 agent 继承显式的 allow;任何 `ask` 都在子 agent 这一层重新询问。多数生产系统默认这一种。
+- **不继承。** 子 agent 从规则集从头开始,没有例外。最安全,也最吵。
 
-OpenCode 默认 *只继承 allow*;主流商业编码 agent 跟同样默认。挑选规则：子 agent 越隔离 (独立 worktree、新鲜 context),继承越合理;子 agent 越强大 (写、shell、网络),它越该重新询问。
+OpenCode 默认 *只继承 allow*;主流商业编码 agent 也是同样的默认。怎么挑:子 agent 越隔离(独立 worktree、全新的上下文),继承就越合理;子 agent 越强大(能写、能跑 shell、能联网),它就越该重新询问。
 
 ### 多审批者工作流
 
-对共享系统里的高风险动作,一个审批不够。模式 (Paperclip 的 `issue_approvals` 表最清楚)：
+对共享系统里的高风险动作来说,一个审批是不够的。这个模式(在 Paperclip 的 `issue_approvals` 表里看得最清楚)：
 
-- 动作要求一组角色 (`author`、`project_lead`、`security`) 的签字。
-- 每次签字带时间戳、角色、决定和可选评论被记录。
-- 仅当所有必要签字都 `approved`,动作才推进。
-- 任何一个 `rejected` 立即停止链。
-- 任一单一签字超时升级给备用审批者。
+- 动作需要一组角色(`author`、`project_lead`、`security`)逐一签字。
+- 每次签字都连同时间戳、角色、决定和可选的评论一起记录下来。
+- 只有当所有必需的签字都为 `approved` 时,动作才推进。
+- 任何一个 `rejected` 都会立即中断整条链。
+- 任一单个签字超时,就升级给备用审批者。
 
-这是治理,不是交互式 HITL。当筹码值得运维成本时是对的工具 — 部署、账户关闭、跨团队变更。其他所有都用错了工具;签字链如果对例行操作触发会被忽略。
+这是治理,不是交互式 HITL。当事情的分量足以抵得上这份运维成本时,它就是对的工具 — 部署、账户关闭、跨团队变更。其余场景都属于用错了工具;签字链如果对例行操作也触发,只会被人无视。
 
 ### 自治模式 — 显式逃生口
 
-某些工作负载完全不应该有人在 loop 里：cron 触发的例行工作、沙盒探索、CI 检查。Harness 应当 *显式* 支持这个,不要作为误配置的副作用：
+某些工作负载里根本就不该有人在回路里:cron 触发的例行工作、沙盒里的探索、CI 检查。harness 应当 *显式* 地支持这一点,而不是让它成为某次误配置的副作用：
 
 ```yaml
 # Excerpt from a harness config.
@@ -254,25 +254,25 @@ permissions:
   approval_log: enabled         # still audit, even with no human approving
 ```
 
-三条规则：模式在 config 里 **显式** (不要因为没 TTY 就隐式 *"没有审批"*);破坏性动作仍有默认 (这里是 auto-deny),而不是悄悄允许;审计日志仍记录 *本该询问* 的事件,这样运维能 review 交互式跑会被询问的事。
+三条规则:模式必须在 config 里 **显式** 声明(不要因为没有 TTY 就隐式认定 *"无需审批"*);破坏性动作仍然要有一个默认行为(这里是 auto-deny),而不是悄悄放行;审计日志仍然要记录那些 *本该询问* 的事件,这样运维就能回看,如果是交互式运行,哪些地方会被弹出询问。
 
-诚实的框架：*自治模式是退出人类 review,不是退出问责。* 日志必须留下。
+说句实在话:*自治模式是放弃人类 review,而不是放弃问责。* 日志必须留下。
 
-### 审批作为审计链路
+### 把审批当成审计链路
 
-每个审批 — granted、denied、edited、expired — 都是值得保留的事件。最小记录：
+每个审批 — 批准、拒绝、编辑、过期 — 都是一桩值得留存的事件。最小的记录应包含：
 
-- **Who** — actor ID、reviewer ID、来源面 (TUI、web、channel)。
-- **What** — 工具名、参数 (或如果参数含密钥的 hash)、风险层。
-- **When** — 创建、决定、过期时间戳。
-- **Why** — agent 拟议的原因、reviewer 给出 (如果给了) 的决定原因。
-- **How** — 决定形态：approved / rejected / edited (带 diff)。
+- **Who** — actor ID、reviewer ID、来源界面(TUI、web、channel)。
+- **What** — 工具名、参数(若参数含密钥则记其 hash)、风险层级。
+- **When** — 创建、决定、过期的时间戳。
+- **Why** — agent 提出该动作的原因,以及 reviewer 给出的决定理由(若有)。
+- **How** — 决定的形态:approved / rejected / edited(带 diff)。
 
-这是 Ch.16 将变成可观测性的同一份日志。也是事后事故复盘最先要的。Hermes Agent 写结构化 JSON 条目;Paperclip 持久化到专门的审批表;OpenCode 用下游 collector 可以持久化的 bus 事件。
+这和 Ch.16 将要变成可观测性的是同一份日志。它也是事后事故复盘时最先被翻出来的东西。Hermes Agent 写的是结构化 JSON 条目;Paperclip 持久化到专门的审批表;OpenCode 则用 bus 事件,由下游 collector 来做持久化。
 
-### Approval-by-decline — 说不之后发生什么
+### 拒绝即一种审批 — 说"不"之后会发生什么
 
-拒绝是一次 turn,不是一次异常。Harness 向循环返回一个 tool result：
+一次拒绝是一个 turn,不是一次异常。Harness 会向循环返回一个工具调用结果：
 
 ```ts
 {
@@ -284,36 +284,36 @@ permissions:
 }
 ```
 
-模型读取拒绝,决定下一步做什么 — 通常是其中之一：提议不同动作、向用户请求指引、总结尝试过的事并停下。交叉对照 Ch.03 的 `hint` 字段：一条有用的拒绝消息告诉模型 *哪种替代方案是可接受的*,而不只是 *不行*。
+模型读到这条拒绝,再决定下一步 — 通常是这几种之一:提出另一个动作、向用户征求指引、总结一下试过什么然后停下。对照 Ch.03 的 `hint` 字段:一条有用的拒绝消息会告诉模型 *什么样的替代方案是可以接受的*,而不只是丢下一句 *不行*。
 
-Agent 不该做的：默默放弃用户的目标。一个被拒绝的 step 几乎从不意味着一个被拒绝的 *任务*。循环应当提议另一条路或浮现僵局 — 永远别消失。
+agent 不该做的事:默默放弃用户的目标。一个被拒绝的 step 几乎从不意味着整个 *任务* 被拒绝。循环应当另提一条路,或者把僵局摆到台面上来 — 千万别就这么消失。
 
 ---
 
 ## 真实系统笔记
 
-- **OpenCode** 是 inline 审批面最清晰的参考：带 `allow` / `ask` / `deny` 的权限规则集、最后匹配赢的求值、感知 scope 的审批 (call / session / forever),以及打开 JSON 编辑器的 *Edit* 按钮。Bus 事件模型把审批干净地集成进 Ch.11 的 harness。
-- **Paperclip** 是多审批者和 async-channel 的参考：专用 `issue_approvals` 表、签字链、超时升级、web dashboard 加 Slack 和邮件通知。组织治理最强的参考。
-- **Hermes Agent** 是个人助理 context 中 async-channel HITL 的参考：一个 Telegram 或 Slack 审批消息到达、等待,人回复时恢复 agent。`--quiet-mode` 标志加结构化日志展示如何设计自治模式而不丢问责。
-- **OpenClaw** 出厂 channel-gateway 版本：通过聊天 channel 的审批与 dashboard 上的审批不同,channel adapter 为媒介塑造 payload。值得研究 surface-vs-payload 的拆分。
+- **OpenCode** 是 inline 审批界面最清晰的参考:一套带 `allow` / `ask` / `deny` 的权限规则集、最后匹配者优先的求值、感知 scope 的审批(call / session / forever),以及一个点开 JSON 编辑器的 *Edit* 按钮。它的 bus 事件模型把审批干净利落地集成进了 Ch.11 的 harness。
+- **Paperclip** 是多审批者和 async-channel 的参考:专门的 `issue_approvals` 表、签字链、超时升级、web dashboard 外加 Slack 和邮件通知。组织治理方面最强的参考。
+- **Hermes Agent** 是个人助理场景下 async-channel HITL 的参考:一条 Telegram 或 Slack 审批消息发出后等在那里,等人回复时再恢复 agent。`--quiet-mode` 标志配上结构化日志,示范了如何设计自治模式而又不丢掉问责。
+- **OpenClaw** 自带 channel-gateway 这一版本:通过聊天 channel 做审批,和在 dashboard 上做审批不是一回事,channel adapter 会按这个媒介来塑造 payload。它值得研究的地方在于把"界面"和"payload"清晰地分开。
 
 ---
 
-## 与你的 agent 配对
+## 与你的 agent 结对
 
-几个对本章效果好的 prompt：
+几个在本章上效果不错的 prompt：
 
-- *"把我所有工具分类成风险层 (read / reversible / external / high_impact),为每个提议默认动作 (allow / ask / deny)。然后把权限规则集写成 YAML,基于我的实际工具注册校验它。"*
-- *"实现 suspend 协议：审批触发时写一行 `SuspendedCall`,把 run 转到 `WaitingApproval` (Ch.08),通知审批面。在 approve / reject / edit / expire 时,从精确 step 边界恢复。用一个故意延迟的审批测试。"*
-- *"通过 Slack 加 async-channel 审批。Agent 贴出审批 payload;人回复 *yes / no / edit*;回复到达时循环恢复。处理人几小时后才回复、session 已轮换的情况。"*
-- *"实现危险默认启发式：大删除、保护路径、下班时间、生产形状 env var。每个把 `allow` 升级到 `ask`。给我看我历史里五个真实 tool call 本来会被升级的。"*
-- *"加三种超时策略 (auto-deny / continue / escalate),让我按工具层配置。用一个故意过期的审批验证正确的策略触发,审计日志记录 *expired* — 不是静默的。"*
-- *"接通审批审计日志：每个 approve / deny / edit / expire 写一条结构化行,带 who、what、when、why、how。把我上周的审批跑过它,告诉我哪些工具问太频繁 (UX 摩擦),哪些从不问 (可能风险错分)。"*
-- *"重构我的子 agent spawn (Ch.10),让父 agent 的 session-scope `allow` 规则被 child 继承,但 `ask` 规则在子 agent 级别重新询问。用一个提议破坏性动作的子 agent 验证 — 确保父 agent 早先的 allow 不覆盖它。"*
-- *"造一个 *永久信任此工具* 按钮,把显式 `allow` 规则写入我的用户 config。验证规则被写入、持久化,并在下一次 session 的权限求值里可见,对话框里有显式 scope 标签让用户知道他们将要选入什么。"*
+- *"把我所有的工具按风险层级分类(read / reversible / external / high_impact),并为每个工具提议一个默认动作(allow / ask / deny)。然后把这份权限规则集写成 YAML,并对照我实际的工具注册表校验它。"*
+- *"实现暂停协议:审批触发时写一行 `SuspendedCall`,把 run 转到 `WaitingApproval`(Ch.08),并通知审批界面。在 approve / reject / edit / expire 时,从精确的 step 边界恢复。用一个故意延迟的审批来测试。"*
+- *"通过 Slack 加上 async-channel 审批。agent 贴出审批 payload;人回复 *yes / no / edit*;回复到达时循环恢复。要处理人几小时后才回复、session 已经轮换过的情况。"*
+- *"实现这套危险默认启发式规则:大批量删除、受保护路径、下班时段、形似生产环境的 env var。每一条都把 `allow` 提升到 `ask`。给我看看我历史记录里有哪五个真实的工具调用本来会被升级。"*
+- *"加上三种超时策略(auto-deny / continue / escalate),让我能按工具层级来配置。用一个故意制造过期的审批来验证:正确的策略被触发,且审计日志记下的是 *expired* — 而不是静默处理。"*
+- *"接通审批审计日志:每个 approve / deny / edit / expire 都写一条结构化记录,带上 who、what、when、why、how。把我上周的审批都跑一遍,告诉我哪些工具问得太频繁(造成 UX 摩擦),哪些从来不问(很可能是风险分错了类)。"*
+- *"重构我的子 agent spawn(Ch.10),让父 agent 的 session-scope `allow` 规则被子 agent 继承,但 `ask` 规则在子 agent 这一层重新询问。用一个会提议破坏性动作的子 agent 来验证 — 确保父 agent 早先的 allow 覆盖不到它。"*
+- *"做一个 *永久信任此工具* 按钮,把一条显式的 `allow` 规则写进我的用户 config。验证这条规则被写入、被持久化,并在下一次 session 的权限求值里可见;对话框里要带一个显式的 scope 标签,让用户清楚自己将要选入的是什么。"*
 
 ---
 
 ## 接下来
 
-你现在有了高影响动作的控制面：规则集、一组审批面、suspend-and-resume 协议、时间限制审批,以及事后回答 *who、what、when、why* 的审计日志。Ch.13 覆盖面下的层 — connector 和 MCP。第一次连第三方 MCP server 时,本章的审批门就是询问你是否信任它的那个。
+现在你有了一套针对高影响动作的控制面:一份规则集、一组审批界面、暂停-恢复协议、带时限的审批,以及一份能在事后回答 *who、what、when、why* 的审计日志。Ch.13 讲的是这些界面底下的那一层 — 连接器和 MCP。当你第一次连上一个第三方 MCP server 时,本章的审批关卡正是那个出来问你"是否信任它"的东西。
