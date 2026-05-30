@@ -3,7 +3,7 @@
 > 📖 **本仓库是 [bryanyzhu/agentic-ai-system-course](https://github.com/bryanyzhu/agentic-ai-system-course) 的中文翻译 + 极简在线阅读器。**
 > 课程原文与设计版权归原作者 **[Yi Zhu (@bryanyzhu)](https://github.com/bryanyzhu)** 所有，本仓库沿用原始 MIT 协议分发。
 >
-> 🌐 **在线阅读**：https://ocxers.github.io/agentic-ai-course-zh/
+> 🌐 **在线阅读**：https://ocxers.github.io/agentic-ai-system-course-zh/
 >
 > ✨ **相对原仓库的改动**：
 > - 新增 [`course-zh/`](course-zh/) —— 22 章完整中文翻译
@@ -19,8 +19,8 @@
 打开 [在线阅读地址](https://ocxers.github.io/agentic-ai-course-zh/) 即可直接读，或本地：
 
 ```bash
-git clone https://github.com/ocxers/agentic-ai-course-zh.git
-cd agentic-ai-course-zh
+git clone https://github.com/ocxers/agentic-ai-system-course-zh.git
+cd agentic-ai-system-course-zh
 python3 -m http.server 8765
 # 浏览器打开 http://localhost:8765/
 ```
