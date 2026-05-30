@@ -282,15 +282,57 @@
   .modal-inner {
     background: var(--bg);
     border-radius: 10px;
-    padding: 32px;
-    width: min(95vw, 1200px);
-    max-height: 95vh;
+    padding: 24px;
+    width: 96vw;
+    height: 92vh;
     overflow: auto;
     box-shadow: 0 20px 60px rgba(0,0,0,0.4);
     cursor: default;
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    user-select: none;
   }
-  .modal-inner svg { width: 100%; height: auto; max-width: 90vw; max-height: 85vh; display: block; }
+  .modal-inner.dragging { cursor: grabbing; }
+  .modal-inner svg { display: block; width: 100%; height: auto; flex-shrink: 0; pointer-events: none; }
+  .modal-inner pre { display: block; width: 100%; flex-shrink: 0; }
+  .modal-toolbar {
+    position: fixed;
+    top: 16px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 4px; align-items: center;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px;
+    z-index: 101;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  }
+  .modal-toolbar button {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    width: 32px; height: 32px;
+    border-radius: 5px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 0;
+    font: inherit;
+  }
+  .modal-toolbar button:hover { background: var(--hover); color: var(--fg); }
+  .modal-toolbar button:disabled { opacity: 0.35; cursor: not-allowed; }
+  .modal-toolbar button:disabled:hover { background: transparent; color: var(--muted); }
+  .modal-toolbar svg { width: 14px; height: 14px; }
+  .modal-zoom-pct {
+    font-size: 12px;
+    color: var(--muted);
+    min-width: 44px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    user-select: none;
+  }
+  .modal-toolbar .divider { width: 1px; height: 18px; background: var(--border); margin: 0 2px; }
   .modal-close {
     position: fixed;
     top: 16px; right: 16px;
@@ -403,6 +445,19 @@
 </div>
 
 <div class="modal" id="modal" aria-hidden="true">
+  <div class="modal-toolbar" id="modalToolbar" role="toolbar">
+    <button id="zoomOutBtn" aria-label="zoom out" title="zoom out (-)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg>
+    </button>
+    <span class="modal-zoom-pct" id="zoomPct">100%</span>
+    <button id="zoomInBtn" aria-label="zoom in" title="zoom in (+)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+    <span class="divider"></span>
+    <button id="zoomResetBtn" aria-label="reset zoom" title="reset (0)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>
+    </button>
+  </div>
   <button class="modal-close" id="modalClose" aria-label="close">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6l-12 12"/></svg>
   </button>
@@ -751,39 +806,101 @@
     renderTOC();
   }
 
-  // ---------- fullscreen modal ----------
+  // ---------- fullscreen modal with zoom ----------
   const modal = document.getElementById('modal');
   const modalInner = document.getElementById('modalInner');
+  const modalToolbar = document.getElementById('modalToolbar');
+  const zoomPctEl = document.getElementById('zoomPct');
+  const zoomInBtn = document.getElementById('zoomInBtn');
+  const zoomOutBtn = document.getElementById('zoomOutBtn');
+  const zoomResetBtn = document.getElementById('zoomResetBtn');
+  const ZOOM_MIN = 0.25, ZOOM_MAX = 8, ZOOM_STEP = 1.25;
+  let modalZoom = 1;
+  let modalKind = null; // 'svg' | 'pre'
+
+  function setZoom(z) {
+    modalZoom = Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
+    const target = modalInner.firstElementChild;
+    if (target) {
+      if (modalKind === 'svg') {
+        target.style.width = `${100 * modalZoom}%`;
+        target.style.height = 'auto';
+      } else if (modalKind === 'pre') {
+        target.style.fontSize = `${13 * modalZoom}px`;
+      }
+    }
+    zoomPctEl.textContent = `${Math.round(modalZoom * 100)}%`;
+    zoomInBtn.disabled = modalZoom >= ZOOM_MAX - 1e-6;
+    zoomOutBtn.disabled = modalZoom <= ZOOM_MIN + 1e-6;
+  }
+  function zoomIn() { setZoom(modalZoom * ZOOM_STEP); }
+  function zoomOut() { setZoom(modalZoom / ZOOM_STEP); }
+  function zoomReset() { setZoom(1); modalInner.scrollTo({ top: 0, left: 0 }); }
+
   function openModal(wrap) {
     const svg = wrap.querySelector(':scope > svg');
     const pre = wrap.querySelector(':scope > pre');
     modalInner.innerHTML = '';
     if (svg) {
       const clone = svg.cloneNode(true);
-      // strip mermaid's fixed sizing so CSS can scale it to the viewport
       clone.removeAttribute('width');
       clone.removeAttribute('height');
       clone.style.maxWidth = '';
       clone.style.maxHeight = '';
-      // ensure viewBox is preserved for scaling
       if (!clone.getAttribute('viewBox') && svg.getBBox) {
         const bb = svg.getBBox();
         clone.setAttribute('viewBox', `${bb.x} ${bb.y} ${bb.width} ${bb.height}`);
       }
       modalInner.appendChild(clone);
+      modalKind = 'svg';
     } else if (pre) {
       modalInner.appendChild(pre.cloneNode(true));
+      modalKind = 'pre';
     } else return;
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
+    setZoom(1);
+    modalInner.scrollTo({ top: 0, left: 0 });
   }
   function closeModal() {
     modal.classList.remove('open');
     modal.setAttribute('aria-hidden', 'true');
     modalInner.innerHTML = '';
+    modalKind = null;
   }
   modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
   document.getElementById('modalClose').addEventListener('click', closeModal);
+  zoomInBtn.addEventListener('click', zoomIn);
+  zoomOutBtn.addEventListener('click', zoomOut);
+  zoomResetBtn.addEventListener('click', zoomReset);
+  // ctrl/cmd + wheel to zoom
+  modalInner.addEventListener('wheel', e => {
+    if (!(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    if (e.deltaY < 0) zoomIn(); else zoomOut();
+  }, { passive: false });
+
+  // click-and-drag to pan
+  let dragging = false, dragStartX = 0, dragStartY = 0, dragScrollX = 0, dragScrollY = 0;
+  modalInner.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    dragging = true;
+    dragStartX = e.clientX;
+    dragStartY = e.clientY;
+    dragScrollX = modalInner.scrollLeft;
+    dragScrollY = modalInner.scrollTop;
+    modalInner.classList.add('dragging');
+  });
+  window.addEventListener('mousemove', e => {
+    if (!dragging) return;
+    modalInner.scrollLeft = dragScrollX - (e.clientX - dragStartX);
+    modalInner.scrollTop = dragScrollY - (e.clientY - dragStartY);
+  });
+  window.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    modalInner.classList.remove('dragging');
+  });
 
   // ---------- routing ----------
   function parseHash() {
@@ -886,6 +1003,9 @@
     if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
     if (modal.classList.contains('open')) {
       if (e.key === 'Escape') closeModal();
+      else if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomIn(); }
+      else if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomOut(); }
+      else if (e.key === '0') { e.preventDefault(); zoomReset(); }
       return;
     }
     if (e.key === 'ArrowLeft' && state.idx > 0) {
